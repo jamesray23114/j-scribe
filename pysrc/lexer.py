@@ -1,4 +1,5 @@
 from io import TextIOWrapper
+from time import sleep
 
 from pysrc.tools import *
 
@@ -10,6 +11,7 @@ LEX_STR     = iota()
 LEX_NAME    = iota()
 LEX_OPER    = iota()
 LEX_KEYWORD = iota()
+LEX_SEPR    = iota()
 
 STYPES = [
     "int",
@@ -18,7 +20,8 @@ STYPES = [
     "string",
     "value",
     "operator",
-    "keyword"
+    "keyword",
+    "seperator"
 ]
 
 # == KEYWORD DEFINES ==
@@ -28,11 +31,8 @@ KEYWORD_WHILE   = iota()
 KEYWORD_BEGIN   = iota()
 KEYWORD_END     = iota()
 KEYWORD_FUNC    = iota()
+KEYWORD_RETURN  = iota()
 KEYWORD_ENTRY   = iota()
-
-KEYWORD_RPAREN  = iota()
-KEYWORD_LPAREN  = iota()
-KEYWORD_SEPER   = iota()
 
     # INTRINSIC TYPES
 
@@ -53,18 +53,16 @@ SKEYWORDS = [
     "begin",
     "end",
     "func",
+    "return",
     "entry",
     
-    "(",
-    ")",
-    ",",
-    
     "void",
-    "any"
+    "any",
     "int8",
     "int16",
     "int32",
     "int64",
+    "int",
     "char",
     "ptr"
 ]
@@ -78,6 +76,8 @@ OPERATOR_MOD    = iota()
 OPERATOR_DEBUG  = iota()
 OPERATOR_LINDEX = iota()
 OPERATOR_RINDEX = iota()
+OPERATOR_GR     = iota()
+OPERATIR_LS     = iota()
 
 SOPERATORS = [
     "+",
@@ -87,7 +87,26 @@ SOPERATORS = [
     "%",
     "?",
     "[",
-    "]"
+    "]",
+    ">",
+    "<",
+]   
+
+SEPARATORS = [
+    ",",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}", 
+    "<",
+    ">",
+    
+    ";",
+    " ",
+    "\n",
+    "\t"  
 ]
 
 # == END OF DEFINES ==
@@ -99,7 +118,7 @@ class lexer_token:
         self.data = data
         pass
         
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:        
         if self.type == LEX_KEYWORD:
             return f"{self.location}:".ljust(7) + f"{STYPES[self.type]}(\'{SKEYWORDS[self.data]}\')"
         elif self.type == LEX_OPER:
@@ -131,51 +150,52 @@ def print_lex_token_array(tokens: list[lexer_token]):
         print(" -> [LEXER]: ", end="")
         print(token)
 
+
+
 def lex64(file: TextIOWrapper, verbose: bool) -> list[lexer_token]:
-    lines = file.readlines()
+    data = file.read() + "\n"
     
     toklist: list[tuple(str, int, int)] = [] 
     
-    for i in range(len(lines)):
-        line = lines[i].split("//")[0]
+    apn = ""
+    x = 1
+    y = 1
+    
+    instring = False
+    
+    for char in data:
         
-        size = len(line)
-        while len(line):
-            line = line.lstrip()
-            comp = ""
-            apen = ""
-            
-            # needed to ensure strings dont get split ie "hello world" doesnt become ("hello), (world")
-            if line.startswith("\""): 
-                ind = line[1:].find("\"") 
-                if ind == -1:
-                    error(f"lexor expected a string but got {line} instead")
-                comp = line[:ind + 2]
-                toklist.append((comp, i + 1, size - len(line) + 1)) 
-                line = line [ind + 2:]
+        if char == "\"":
+            apn += char
+            x += 1
+            if instring:
+                toklist.append((apn, y, x - len(apn)))
+                apn = ""
+                instring = False
+            else:
+                instring = True
                 
-            else: 
-                # removes semicolons
-                comp = line.split(" ")[0].rstrip() 
-                while comp.endswith(";"):
-                    comp = comp[:-1]
-                    
-                # seperate specific characters from start of token
-                if comp.startswith(("(", "[", ",")):
-                    toklist.append((comp[0], i + 1, size - len(line) + 1))
-                    comp = comp[1:]
-                    
-                # seperate specific characters from end of token
-                if comp.endswith((")", "]", ",")):
-                    apen = comp[-1]
-                    comp = comp[:-1]
-                    
-                toklist.append((comp, i + 1, size - len(line) + 1)) 
-                toklist.append((apen, i + 1, size - len(line) + 1))
-                if " " in line:
-                    line = line.split(" ", 1)[1]
-                else:
-                    break
+        elif char == "\n" and instring == True:
+            error(f"lexer expected a string at {y}:{x - len(apn)} but got {apn} instead")
+        
+        elif char in SEPARATORS and instring == False:
+            if len(apn) != 0:
+                toklist.append((apn, y, x - len(apn)))
+                apn = ""
+            x += 1
+            
+            if char == "\n":
+                y += 1
+                x = 1
+            elif not char.isspace():
+                toklist.append((char, y, x - 1))
+            else:
+                pass
+        else:
+            apn += char
+            x += 1
+    
+    toklist.append((apn, y, x))
     
     retlist: list[lexer_token] = []
     
