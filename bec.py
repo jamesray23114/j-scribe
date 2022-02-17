@@ -1,7 +1,7 @@
-from os import system
 import pysrc.compiler as com, pysrc.generator as gen, pysrc.lexer as lex
 from pysrc.tools import *
 from sys import argv
+from os import system
 from os.path import exists 
 import time
 

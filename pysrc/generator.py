@@ -34,7 +34,7 @@ def generate64(tokarr: list[compiler_token], filename: str, keep: str):
                     
                     match token.data.type:
                         
-                        case LEX.STR:
+                        case CTX_DEBUG.STR:
                             asm.write(f"    mov rax, 1 ; SYS_WRITE\n")
                             asm.write(f"    mov rdi, 1 ; STDOUT\n")
                             asm.write(f"    mov rsi, l{count}.str\n")
@@ -42,28 +42,60 @@ def generate64(tokarr: list[compiler_token], filename: str, keep: str):
                             asm.write(f"    syscall\n")
                             asm.write("\n")
                             
-                            datarr.append(f"    l{count}.str db {token.data.data}, 10\n")
+                            datarr.append(f"    l{count}.str db {token.data.value}, 10\n")
                             datarr.append(f"    l{count}.len = $- l{count}.str\n")
                             datarr.append("\n")
                             count += 1
                         
-                        case LEX.INT | LEX.CHAR | LEX.FLT:
+                        case CTX_DEBUG.INT:
+                            asm.write(f"    mov rbx, 10\n")
+                            asm.write(f"    mov rcx, 0\n")
+                            asm.write(f"l{count}:\n")
+                            asm.write(f"    mov rdx, 0\n")
+                            asm.write(f"    idiv rbx\n")
+                            asm.write(f"    push rdx\n")
+                            asm.write(f"    inc rcx\n")
+                            asm.write(f"    cmp rax, 9\n")
+                            asm.write(f"    jg l{count}\n")
+                            asm.write(f"    push rax\n")
+                            asm.write(f"    mov rax, 0\n")
+                            asm.write(f"l{count + 1}:\n")
+                            asm.write(f"    pop rdx\n")
+                            asm.write(f"    add rdx, '0'\n")
+                            asm.write(f"    mov [l{count+2}.str + rax], dl\n")
+                            asm.write(f"    dec rcx\n")
+                            asm.write(f"    inc rax\n")
+                            asm.write(f"    cmp rcx, 0\n")
+                            asm.write(f"    jge l{count+1}\n")
+                            asm.write(f"    mov [l{count+2}.str + rax], 10\n")
+                            asm.write(f"\n")
                             asm.write(f"    mov rax, 1 ; SYS_WRITE\n")
                             asm.write(f"    mov rdi, 1 ; STDOUT\n")
-                            asm.write(f"    mov rsi, l{count}.str\n")
-                            asm.write(f"    mov rdx, l{count}.len\n")
+                            asm.write(f"    mov rsi, l{count + 2}.str\n")
+                            asm.write(f"    mov rdx, 16\n")
                             asm.write(f"    syscall\n")
-                            asm.write("\n")
-                        
-                            datarr.append(f"    l{count}.str db \"{str(token.data.data)}\", 10\n")
-                            datarr.append(f"    l{count}.len = $- l{count}.str\n")
+                            asm.write(f"\n")
+                            count += 2
+                            
+                            datarr.append(f"    l{count}.str db 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0")
                             datarr.append("\n")
                             count += 1
                         
                         case _:
-                            ptodo(f"generation of debug token \'{LEX.STRING[token.data.type]}\'")
+                            system(f"rm {asmname}")
+                            ptodo(f"generation of debug token \'{CTX_DEBUG.STRING[token.data.type]}\'")
+                    
+                case CTX.LOAD:
+                    asm.write(f"    mov eax, {token.data}\n")
+                    
+                case CTX.ADD:
+                    asm.write(f"    add eax, {token.data}\n")
+                    
+                case CTX.SUB:
+                    asm.write(f"    sub eax, {token.data}\n")
                     
                 case _:
+                    system(f"rm {asmname}")
                     ptodo(f"generation of token \'{CTX.STRING[token.context]}\'")
     
         asm.write("    mov rax, 60 ; SYSEXIT\n")

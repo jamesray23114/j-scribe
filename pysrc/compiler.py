@@ -1,14 +1,28 @@
-from distutils.debug import DEBUG
-from numpy import mat
 from pysrc.tools import *
 from pysrc.lexer import *
 
 class CTX:
-    DEBUG = iota(True)
+    DEBUG   = iota(True)
+    ADD     = iota()
+    SUB     = iota()
+    MUL     = iota()
+    DIV     = iota()
+    MOD     = iota()
+    LOAD    = iota()
+    NONE    = iota() 
     
     STRING = [
-        "debug"
+        "debug",
+        "add",
+        "subtract",
+        "multiply",
+        "divide",
+        "modulo",
+        "load",
+        "none"
     ]
+
+# compiler_token
 
 class compiler_token:
     
@@ -20,89 +34,150 @@ class compiler_token:
         pass
     
     def __repr__(self) -> str:
-        return f"| {self.name}:{self.location}:".ljust(25) + f"| {self.data}".ljust(60) + "|"
+        return f"| {self.name}:{self.location}:".ljust(35) + f"| {CTX.STRING[self.context]}({self.data})".ljust(60) + "|"
     
-    pass
+# CTX_DEBUG
 
-class ctx_debug:
-    def __init__(self, type: int, data: any) -> None:
+class CTX_DEBUG:
+    STR     = iota(True)
+    INT     = iota()
+    FLT     = iota()
+    
+    STRING = [
+        "string",
+        "int",
+        "float",
+    ]
+        
+    def __init__(self, type: int, value: any) -> None:
         self.type = type
-        self.data = data
-        pass
+        self.value = value
 
     def __repr__(self) -> str:
-        return f"operator debug(type: {LEX.STRING[self.type]},".ljust(30) + f"data: {self.data})"
-
-    pass
+        return f"type: {self.STRING[self.type]}, data: {self.value}"
 
 def print_ct_token_array(tokarr: list[compiler_token]):
     print("  [COMP]: ", end="")
-    print("| filename:".ljust(25) + "| type:".ljust(60) + "|")
-    print("  [COMP]: | =======================|===========================================================|")
+    print("| filename:".ljust(35) + "| type:".ljust(60) + "|")
+    print("  [COMP]: | =================================|===========================================================|")
     for token in tokarr:
         print("  [COMP]: ", end="")
         print(token)
-    print("  [COMP]: | =======================|===========================================================|")
+    print("  [COMP]: | =================================|===========================================================|")
 
 def compile64_to_oparray(tokarr: list[lexer_token], verbose: bool) -> list[compiler_token]:
     
     currentfile = ""
-    currenttoken = ""
     retlist: list[compiler_token] = []
+    ltstack: list[lexer_token] = []
+    dtypes = ["int", "int8", "int16", "int32", "int64", "void", "char", "float"]
     
     i = 0
-    try: 
-        while i < len(tokarr):
-            match tokarr[i].type:
+   
+    while i < len(tokarr):
+        match tokarr[i].type:
+            
+            case LEX.FILE:
+                if tokarr[i].data == "EOF":
+                    currentfile = ""
+                else:
+                    currentfile = tokarr[i].data
+            
+            case LEX.INT | LEX.FLT | LEX.STR | LEX.CHAR:
+                ltstack.append(tokarr[i])
                 
-                case LEX.FILE:
-                    if tokarr[i].data == "EOF":
-                        currentfile = ""
-                    else:
-                        currentfile = tokarr[i].data
-                
-                case LEX.INT:
-                    error(f"compiler expected an expression but got int {tokarr[i].data} instead")
-                
-                case LEX.STRING:
-                    error(f"compiler expected an expression but got string {tokarr[i].data} instead")
-                
-                case LEX.FLT:
-                    error(f"compiler expected an expression but got float {tokarr[i].data} instead")
-                    
-                case LEX.CHAR:
-                    error(f"compiler expected an expression but got char {tokarr[i].data} instead")
-                    
-                case LEX.OPER:
-                    match tokarr[i].data:
-                        case OPERATOR.DEBUG:
-                            i += 1
-                            retlist.append(
-                                compiler_token(currentfile, tokarr[i-1].location, CTX.DEBUG, 
-                                    ctx_debug(tokarr[i].type, tokarr[i].data)
-                                )
-                            )
+            case LEX.OPER:
+                match tokarr[i].data:
+                    case OPERATOR.DEBUG:
+                        last = tokarr[i]
+                        i += 1
                         
-                        
-                        
-                        case _:
-                            ptodo(f"operator \'{OPERATOR.STRING[tokarr[i].data]}\'")
+                        match tokarr[i].type:
+                            case LEX.NAME:
+                                ptodo("debug name")
+                            
+                            case LEX.STR | LEX.CHAR:
+                                curr = tokarr[i]
+                                retlist.append(compiler_token(curr.filename, curr.location, CTX.DEBUG, CTX_DEBUG(CTX_DEBUG.STR, curr.data)))
+                            case LEX.INT | LEX.FLT:
+                                curr = tokarr[i]
+                                expr = [curr]
+                                i += 1
+                                
+                                while tokarr[i].type in [LEX.INT, LEX.OPER, LEX.FLT]:
+                                    expr.append(tokarr[i])
+                                    i += 1
+                                
+                                if len(expr) == 1:
+                                    retlist.append(compiler_token(curr.filename, curr.location, CTX.DEBUG, CTX_DEBUG(CTX_DEBUG.STR, f"\"{curr.data}\"")))
+                                else:
+                                    expr.append(tokarr[-1])
+                                    expr = compile64_to_oparray(expr, False)
+                                    retlist += expr 
+                                    retlist.append(compiler_token(curr.filename, curr.location, CTX.DEBUG, CTX_DEBUG(CTX_DEBUG.INT, None)))
+                                
+                            case LEX.FILE:
+                                error(f"{last.filename}:{last.location}: operator \'?\' expects 1 argument but got nothing instead")
+                                
+                            case _:
+                                error(f"{last.filename}:{last.location}: operator \'?\' expects 1 printable argument but got \'{last.data}\' instead")
                     
-                case LEX.NAME:
-                    ptodo("compiler names")
-                    
-                case LEX.KEYWORD:
-                    ptodo("compiler keywords")
+                    case OPERATOR.ADD | OPERATOR.SUB | OPERATOR.MUL | OPERATOR.DIV | OPERATOR.MOD:
+                        curr = tokarr[i]
+                        i += 1
+                        if len(ltstack) == 0 or tokarr[i].type == LEX.FILE:
+                            error(f"{curr.filename}:{curr.location}: operator \'{OPERATOR.STRING[curr.data]} expected 1 argument but got nothing instead\'")
+                        lhs = ltstack.pop()
+                        rhs = tokarr[i]
+                        ltstack.append(lexer_token(curr.filename, curr.location, LEX.INT, 0))
+                        
+                        if lhs.type == LEX.INT:
+                            if lhs.data == 0:
+                                pass
+                            else:
+                                retlist.append(compiler_token(curr.filename, curr.location, CTX.LOAD, lhs.data))
+                        elif lhs.type == LEX.FLT:
+                            ptodo("float math")
+                        else:
+                            error(f"{curr.filename}:{curr.location}: operator \'{OPERATOR.STRING[curr.data]} expected 1 argument but got \'{lhs.data}\' instead\'")
+                        
+                        if curr.data == OPERATOR.ADD and rhs.type == LEX.INT:
+                            retlist.append(compiler_token(curr.filename, curr.location, CTX.ADD, rhs.data))
+                        elif curr.data == OPERATOR.ADD and rhs.type == LEX.FLT:
+                            ptodo("float math")
+                        elif curr.data == OPERATOR.SUB and rhs.type == LEX.INT:
+                           retlist.append(compiler_token(curr.filename, curr.location, CTX.SUB, rhs.data))
+                        elif curr.data == OPERATOR.SUB and rhs.type == LEX.FLT:
+                            ptodo("float math")
+                        elif curr.data == OPERATOR.MUL and rhs.type == LEX.INT:
+                            retlist.append(compiler_token(curr.filename, curr.location, CTX.MUL, rhs.data))
+                        elif curr.data == OPERATOR.MUL and rhs.type == LEX.FLT:
+                            ptodo("float math")
+                        elif curr.data == OPERATOR.DIV and rhs.type == LEX.INT:
+                            retlist.append(compiler_token(curr.filename, curr.location, CTX.DIV, rhs.data))
+                        elif curr.data == OPERATOR.DUV and rhs.type == LEX.FLT:
+                            ptodo("float math")
+                        elif curr.data == OPERATOR.MOD and rhs.type == LEX.INT:
+                            retlist.append(compiler_token(curr.filename, curr.location, CTX.MOD, rhs.data))
+                        elif curr.data == OPERATOR.MOD and rhs.type == LEX.FLT:
+                            ptodo("float math")
+                        else:
+                            error(f"{curr.filename}:{curr.location}: operator \'{OPERATOR.STRING[curr.data]} expected 1 argument but got \'{rhs.data}\' instead\'")
+                                                    
+                    case _:
+                        ptodo(f"compiler operator \'{OPERATOR.STRING[tokarr[i].data]}\'")
+            
+            case LEX.NAME:
+                ptodo("compile named values")
+            
+            case LEX.KEYWORD:
+                ptodo("compile keywords")
+            
+            case _:
+                error(f"compiler got unexpected token {tokarr[i]}")
+        
+        i += 1
                 
-                case _:
-                    error(f"compiler got unexpected token {tokarr[i]}")
-        
-            i += 1
-        
-        
-    except IndexError:
-        error(f"compiler expected a token and got nothing instead.")
-        
     if verbose:
         print_ct_token_array(retlist)
         

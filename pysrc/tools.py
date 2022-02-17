@@ -43,7 +43,7 @@ def ptodo(msg: str):
     print("[\u001b[33;1m", end="")
     print("TODO", end="")
     print("\u001b[0m]: ", end="")
-    print("impliment " + msg)
+    print("implement " + msg)
     print("[INFO]: exiting...")
     exit(0)
     

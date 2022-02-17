@@ -11,7 +11,6 @@ class LEX:
     NAME    = iota()
     OPER    = iota()
     KEYWORD = iota()
-    SEPR    = iota()
     FILE    = iota()
 
     STRING = [
@@ -22,7 +21,6 @@ class LEX:
         "value",
         "operator",
         "keyword",
-        "seperator",
         "file"
     ]
 
@@ -46,6 +44,7 @@ class KEYWORD:
     INT64   = iota()
     INT     = iota()
     CHAR    = iota()
+    FLOAT   = iota()
     PTR     = iota()
 
     STRING = [
@@ -66,6 +65,7 @@ class KEYWORD:
         "int64",
         "int",
         "char",
+        "float",
         "ptr"
     ]
 
@@ -124,13 +124,13 @@ class lexer_token:
         
     def __repr__(self) -> str:        
         if self.type == LEX.KEYWORD:
-            return f"| {self.filename}:{self.location}:".ljust(25) + f"| {LEX.STRING[self.type]}(\'{KEYWORD.STRING[self.data]}\')".ljust(60) + "|"
+            return f"| {self.filename}:{self.location}:".ljust(35) + f"| {LEX.STRING[self.type]}(\'{KEYWORD.STRING[self.data]}\')".ljust(60) + "|"
         elif self.type == LEX.OPER:
-            return f"| {self.filename}:{self.location}:".ljust(25) + f"| {LEX.STRING[self.type]}(\'{OPERATOR.STRING[self.data]}\')".ljust(60) + "|"
+            return f"| {self.filename}:{self.location}:".ljust(35) + f"| {LEX.STRING[self.type]}(\'{OPERATOR.STRING[self.data]}\')".ljust(60) + "|"
         elif self.type == LEX.STR or self.type == LEX.CHAR:
-            return f"| {self.filename}:{self.location}:".ljust(25) + f"| {LEX.STRING[self.type]}({self.data})".ljust(60) + "|"
+            return f"| {self.filename}:{self.location}:".ljust(35) + f"| {LEX.STRING[self.type]}({self.data})".ljust(60) + "|"
         else:
-            return f"| {self.filename}:{self.location}:".ljust(25) + f"| {LEX.STRING[self.type]}(\'{self.data}\')".ljust(60) + "|"
+            return f"| {self.filename}:{self.location}:".ljust(35) + f"| {LEX.STRING[self.type]}(\'{self.data}\')".ljust(60) + "|"
         
     pass
 
@@ -151,12 +151,12 @@ def otd(token: str):
 
 def print_lt_token_array(tokens: list[lexer_token]):
     print("  [LEXR]: ", end="")
-    print("| filename: ".ljust(25) + "| type:".ljust(60) + "|")
-    print("  [LEXR]: | =======================|===========================================================|")
+    print("| filename: ".ljust(35) + "| type:".ljust(60) + "|")
+    print("  [LEXR]: | =================================|===========================================================|")
     for token in tokens:
         print("  [LEXR]: ", end="")
         print(token)
-    print("  [LEXR]: | =======================|===========================================================|")
+    print("  [LEXR]: | =================================|===========================================================|")
 
 
 
