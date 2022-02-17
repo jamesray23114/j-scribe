@@ -77,6 +77,7 @@ def compile64_to_oparray(tokarr: list[lexer_token], verbose: bool) -> list[compi
     retlist: list[compiler_token] = []
     ltstack: list[lexer_token] = []
     dtypes = ["int", "int8", "int16", "int32", "int64", "void", "char", "float"]
+    inexpr = False
     
     i = 0
    
@@ -133,21 +134,22 @@ def compile64_to_oparray(tokarr: list[lexer_token], verbose: bool) -> list[compi
                     case OPERATOR.ADD | OPERATOR.SUB | OPERATOR.MUL | OPERATOR.DIV | OPERATOR.MOD:
                         curr = tokarr[i]
                         i += 1
-                        if len(ltstack) == 0 or tokarr[i].type == LEX.FILE:
+                        if (len(ltstack) == 0 or tokarr[i].type == LEX.FILE) and not inexpr:
                             error(f"{curr.filename}:{curr.location}: operator \'{OPERATOR.STRING[curr.data]} expected 1 argument but got nothing instead\'")
-                        lhs = ltstack.pop()
-                        rhs = tokarr[i]
-                        ltstack.append(lexer_token(curr.filename, curr.location, LEX.INT, 0))
                         
-                        if lhs.type == LEX.INT:
-                            if lhs.data == 0:
-                                pass
-                            else:
-                                retlist.append(compiler_token(curr.filename, curr.location, CTX.LOAD, lhs.data))
-                        elif lhs.type == LEX.FLT:
-                            ptodo("float math")
+                        rhs = tokarr[i]
+                        
+                        if inexpr:
+                            pass
                         else:
-                            error(f"{curr.filename}:{curr.location}: operator \'{OPERATOR.STRING[curr.data]} expected 1 argument but got \'{lhs.data}\' instead\'")
+                            lhs = ltstack.pop()
+                            if lhs.type == LEX.INT:
+                                retlist.append(compiler_token(curr.filename, curr.location, CTX.LOAD, lhs.data))
+                                inexpr = True
+                            elif lhs.type == LEX.FLT:
+                                ptodo("float math")
+                            else:
+                                error(f"{curr.filename}:{curr.location}: operator \'{OPERATOR.STRING[curr.data]} expected 1 argument but got \'{lhs.data}\' instead\'")
                         
                         if curr.data == OPERATOR.ADD and rhs.type == LEX.INT:
                             if rhs.data == 0:
@@ -194,5 +196,9 @@ def compile64_to_oparray(tokarr: list[lexer_token], verbose: bool) -> list[compi
                 
     if verbose:
         print_ct_token_array(retlist)
+        
+    if len(ltstack) != 0:
+        for token in ltstack:
+            warn(f"{token.filename}:{token.location}: compiler got unexpected token \'{token.data}\'")
         
     return retlist
