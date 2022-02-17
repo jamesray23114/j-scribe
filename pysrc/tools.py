@@ -24,9 +24,11 @@ def usage():
     print("options:")
     print("\t -c                    compile file")
     print("\t -r                    run file after compiling")
+    print("\t -i                    run and remove file after compiling")
     print("\t -o outfile            output redirection (default=$file)")
     print("\t -v,--verbose          verbose compiler output")
     print("\t -h,--help             prints this screen")
+    print("\t -S outfile            Write asm to file and keep asm (default="" dont keep file)")    
     exit(0)
     
 def error(msg: str):
@@ -44,3 +46,8 @@ def ptodo(msg: str):
     print("impliment " + msg)
     print("[INFO]: exiting...")
     exit(0)
+    
+def debug(stype: str, msg: any):
+    print("-> [PRAGMA]: ", end="")
+    print("(" + stype + ") " + str(msg))
+    
