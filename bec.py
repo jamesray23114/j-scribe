@@ -13,7 +13,8 @@ def main():
     args = args[1:]
     
     outputfile = 0
-    verbose = False
+    cverbose = False
+    lverbose = False
     run = False
     irun = False
     asmfile = ""
@@ -35,12 +36,12 @@ def main():
             with open(args[0], "r") as file:
                 curtime = time.time_ns()
                 print("[INFO]: starting lexer")
-                ltokarr = lex.lex64(file, verbose)
+                ltokarr = lex.lex64(file, lverbose)
                 print(f"[INFO]: lexer finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             curtime = time.time_ns()
             print("[INFO]: starting compiler")    
-            ctokarr: list[com.compiler_token] = com.compile64_to_oparray(ltokarr, verbose)
+            ctokarr: list[com.compiler_token] = com.compile64_to_oparray(ltokarr, cverbose)
             print(f"[INFO]: compiler finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             if outputfile == 0:
@@ -48,6 +49,8 @@ def main():
             
             curtime = time.time_ns()
             print(f"[INFO]: starting generation")
+            with open(outputfile, "w") as _:
+                pass
             gen.generate64(ctokarr, outputfile, asmfile)
             print(f"[INFO]: generation finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
 
@@ -75,16 +78,20 @@ def main():
             args = args[1:]
             irun = True
         
-        elif args[0] == "-v":
+        elif args[0] == "-vc":
             args = args[1:]
-            verbose = True
+            cverbose = True
+            
+        elif args[0] == "-vc":
+            args = args[1:]
+            lverbose = True
         
         elif args[0] == "-o":
             args = args[1:]
             
             if len(args) == 0:
                 error("-o expects an output file, got nothing instead.")
-            if args[0] in ("-c", "-i", "-v", "-o", "-h", "--help", "-s"):
+            if args[0] in ("-c", "-i", "-vc", "-o", "-h", "--help", "-S", "-vl"):
                 error(f"-o expects an output file, got \'{args[0]}\' instead.")
             
             outputfile = args[0]
@@ -95,7 +102,7 @@ def main():
             
             if len(args) == 0:
                 error("-S expects and output file, got nothing instead.")
-            if args[0] in ("-c", "-i", "-v", "-o", "-h", "--help", "-s"):
+            if args[0] in ("-c", "-i", "-vc", "-o", "-h", "--help", "-s", "-vl"):
                 error(f"-S expects an output file, got \'{args[0]}\' instead.")
             
             asmfile = args[0]

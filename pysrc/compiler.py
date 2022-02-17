@@ -12,12 +12,12 @@ class CTX:
     NONE    = iota() 
     
     STRING = [
-        "debug",
+        "dump",
         "add",
-        "subtract",
-        "multiply",
-        "divide",
-        "modulo",
+        "sub",
+        "mul",
+        "div",
+        "mod",
         "load",
         "none"
     ]
@@ -54,7 +54,13 @@ class CTX_DEBUG:
         self.value = value
 
     def __repr__(self) -> str:
-        return f"type: {self.STRING[self.type]}, data: {self.value}"
+        if self.type == CTX_DEBUG.INT:
+            dat = "["
+            for tok in self.value:
+                dat += f"{CTX.STRING[tok.context]}({tok.data}), "
+            return dat[0:-2] + "]"
+        else:
+            return f"data: {self.value}"
 
 def print_ct_token_array(tokarr: list[compiler_token]):
     print("  [COMP]: ", end="")
@@ -105,6 +111,9 @@ def compile64_to_oparray(tokarr: list[lexer_token], verbose: bool) -> list[compi
                                 i += 1
                                 
                                 while tokarr[i].type in [LEX.INT, LEX.OPER, LEX.FLT]:
+                                    if tokarr[i].type == LEX.OPER and tokarr[i].data not in [OPERATOR.ADD, OPERATOR.SUB, OPERATOR.MUL, OPERATOR.DIV, OPERATOR.MOD]:
+                                        i -= 1
+                                        break
                                     expr.append(tokarr[i])
                                     i += 1
                                 
@@ -113,8 +122,7 @@ def compile64_to_oparray(tokarr: list[lexer_token], verbose: bool) -> list[compi
                                 else:
                                     expr.append(tokarr[-1])
                                     expr = compile64_to_oparray(expr, False)
-                                    retlist += expr 
-                                    retlist.append(compiler_token(curr.filename, curr.location, CTX.DEBUG, CTX_DEBUG(CTX_DEBUG.INT, None)))
+                                    retlist.append(compiler_token(curr.filename, curr.location, CTX.DEBUG, CTX_DEBUG(CTX_DEBUG.INT, expr)))
                                 
                             case LEX.FILE:
                                 error(f"{last.filename}:{last.location}: operator \'?\' expects 1 argument but got nothing instead")
@@ -142,11 +150,17 @@ def compile64_to_oparray(tokarr: list[lexer_token], verbose: bool) -> list[compi
                             error(f"{curr.filename}:{curr.location}: operator \'{OPERATOR.STRING[curr.data]} expected 1 argument but got \'{lhs.data}\' instead\'")
                         
                         if curr.data == OPERATOR.ADD and rhs.type == LEX.INT:
-                            retlist.append(compiler_token(curr.filename, curr.location, CTX.ADD, rhs.data))
+                            if rhs.data == 0:
+                                pass
+                            else:
+                                retlist.append(compiler_token(curr.filename, curr.location, CTX.ADD, rhs.data))
                         elif curr.data == OPERATOR.ADD and rhs.type == LEX.FLT:
                             ptodo("float math")
                         elif curr.data == OPERATOR.SUB and rhs.type == LEX.INT:
-                           retlist.append(compiler_token(curr.filename, curr.location, CTX.SUB, rhs.data))
+                            if rhs.data == 0:
+                                pass
+                            else:
+                                retlist.append(compiler_token(curr.filename, curr.location, CTX.SUB, rhs.data))
                         elif curr.data == OPERATOR.SUB and rhs.type == LEX.FLT:
                             ptodo("float math")
                         elif curr.data == OPERATOR.MUL and rhs.type == LEX.INT:
