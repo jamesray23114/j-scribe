@@ -3,13 +3,14 @@ from sys import exit
 
 
 class loc:
-    def __init__(self, x: int, y: int) -> None:
+    def __init__(self, file: str, x: int, y: int) -> None:
+        self.file = file
         self.x = x
         self.y = y
         pass
     
     def __repr__(self) -> str:
-        return f"{self.x}:{self.y}"
+        return f"{self.file}:{self.x}:{self.y}"
     
 def iota(reset=False):
     if reset:

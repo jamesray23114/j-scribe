@@ -31,7 +31,7 @@ def main():
             if not exists(args[0]):
                 error(f"invalid file, -c expects an input file, got \'{args[0]}\' instead.")
             
-            ltokarr: list[lex.lexer_token] = []
+            ltokarr: list[lex.ltok] = []
             
             with open(args[0], "r") as file:
                 curtime = time.time_ns()
@@ -82,7 +82,7 @@ def main():
             args = args[1:]
             cverbose = True
             
-        elif args[0] == "-vc":
+        elif args[0] == "-vl":
             args = args[1:]
             lverbose = True
         

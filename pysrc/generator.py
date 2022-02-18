@@ -40,7 +40,8 @@ def generate64(tokarr: list[compiler_token], filename: str, keep: str):
                 asmfile.write(string)
          
     print(f"[CMD]: fasm {asmname} {filename}")
-    system(f"fasm {asmname} {filename} 1> /dev/null")
+    if system(f"fasm {asmname} {filename} 1> /dev/null") != 0:
+        error("fasm ran into an error")
     print(f"[CMD]: chmod +x {filename}")
     system(f"chmod +x {filename}")
     
@@ -129,13 +130,29 @@ def writeasm64(tokarr: list[compiler_token], file: TextIOWrapper, count: int):
                         ptodo(f"generation of debug token \'{CTX_DEBUG.STRING[token.data.type]}\'")
                 
             case CTX.LOAD:
-                file.write(f"    mov eax, {token.data}\n")
+                file.write(f"    mov rax, {token.data}\n")
                 
             case CTX.ADD:
-                file.write(f"    add eax, {token.data}\n")
+                file.write(f"    add rax, {token.data}\n")
+                
+            case CTX.MUL:
+                file.write(f"    mov rdx, 0\n")
+                file.write(f"    mov rbx, {token.data}\n")
+                file.write(f"    imul rbx\n")
+                
+            case CTX.DIV:
+                file.write(f"    mov rdx, 0\n")
+                file.write(f"    mov rbx, {token.data}\n")
+                file.write(f"    idiv rbx ")
+                
+            case CTX.MOD:
+                file.write(f"    mov rdx, 0\n")
+                file.write(f"    mov rbx, {token.data}\n")
+                file.write(f"    idiv rbx\n")
+                file.write(f"    mov rax, rdx\n")
                 
             case CTX.SUB:
-                file.write(f"    sub eax, {token.data}\n")
+                file.write(f"    sub rax, {token.data}\n")
                 
             case _:
                 system(f"rm {asmname}")
