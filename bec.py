@@ -1,5 +1,5 @@
-import pysrc.compiler as com, pysrc.generator as gen, pysrc.lexer as lex
-from pysrc.tools import *
+import src.compiler as com, src.lexer as lex #, pysrc.generator as gen
+from src.common import *
 from sys import argv
 from os import system
 from os.path import exists 
@@ -41,7 +41,7 @@ def main():
             
             curtime = time.time_ns()
             print("[INFO]: starting compiler")    
-            ctokarr: list[com.compiler_token] = com.compile64_to_oparray(ltokarr, cverbose)
+            ctokarr: list[com.compiler_token] = com.compile64(ltokarr, cverbose)
             print(f"[INFO]: compiler finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             if outputfile == 0:
@@ -51,7 +51,7 @@ def main():
             print(f"[INFO]: starting generation")
             with open(outputfile, "w") as _:
                 pass
-            gen.generate64(ctokarr, outputfile, asmfile)
+            #gen.generate64(ctokarr, outputfile, asmfile)
             print(f"[INFO]: generation finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
 
             if run:

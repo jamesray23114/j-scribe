@@ -1,0 +1,72 @@
+ID = letter LIST (letter OR digit)
+INT = LIST digit
+FLOAT = LIST digit . LIST (digit)
+ESCAPE = '\n' '\r' '\t' '\b' '\f' '\' '\"' '\\'
+CHAR = 'letter' 'digit' 'symbol' ESCAPE
+STRING = " LIST (CHAR OR ESCAPE) "  
+TYPE = 'int' 'float' ECT
+    func(<(TYPE OR ID) ( -> TYPE OR ID)>)
+    ptr<TYPE OR ID>
+
+-----------------------------------------------------
+
+program -> LIST statment 
+
+-----------------------------------------------------
+
+statement -> declaration OR expression
+
+-----------------------------------------------------
+
+declaration -> 
+    vardecl 
+    funcdecl
+    structdecl
+    preproc
+
+vardecl     -> TYPE OR ID identifier (= expression; OR funcdecl) 
+funcdecl    -> [(ID LIST (, ID))] { LIST (expression) }
+structdecl  -> struct ID { LIST (vardecl OR structdecl) }
+preproc     -> # ID (<LIST any>)
+
+-----------------------------------------------------
+
+expressions -> 
+    expr ;  
+    loopexpr
+    returnexpr
+    ; 
+
+-----------------------------------------------------
+
+expr -> 
+    mut relop expr OR funcdecl
+    mut++ OR ++mut
+    mut-- OR --mut
+    binaryexpr
+    unaryexpr
+    value
+
+    relop: < <= >= == !=
+    value: ID expr call constant ETC
+
+binaryexpr -> (LPAREN) expr binop expr (RPAREN)
+    binop: + - * / % << >> & && | || ^ ^^ ECT
+unaryexpr -> (LPAREN) unop expr (RPAREN) 
+    unop: + - ~ ! ETC
+
+-----------------------------------------------------
+
+call -> ID LPAREN (expr OR funcdecl,)* RPAREN 
+
+-----------------------------------------------------
+
+loopexpr -> while for
+    while -> while LPAREN expr RPAREN { LIST (expression) }
+    for -> for LPAREN (expr) ; (expr) ; (expr) RPAREN { LIST (expression) }
+
+-----------------------------------------------------
+
+returnexpr -> return (expr) ;
+
+-----------------------------------------------------
