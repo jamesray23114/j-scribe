@@ -5,8 +5,11 @@ class LEXER(Enum):
     FLOAT   = auto()
     CHAR    = auto()
     STRING  = auto()
-    WORD    = auto()
-    SYMB    = auto()
+    ID      = auto()
+    
+    OP      = auto()   
+    GROUP   = auto()
+    
     COMMA   = auto()
     SEMI    = auto()
     FILE    = auto()
@@ -14,10 +17,20 @@ class LEXER(Enum):
 
     SPACE   = auto()
     
-class CONTEXT(Enum):
-    EXPR    = auto()
+class PARSER(Enum):
+    FILE        = auto()
     
-    INCLUDE = auto()
+    UNIT        = auto()
+    PROGRAM     = auto()
+    
+    EXPR        = auto()
+    VALUE       = auto()
+    
+    COMPARE     = auto()
+    LOGIC       = auto()
+    SHIFT       = auto()
+    FACTOR      = auto()
+    SUM         = auto()
     
 class location:
     def __init__(self, file: str, x: int, y: int) -> None:
@@ -34,11 +47,20 @@ class token:
         self.type = type
         self.data = data
         
+    def __eq__(self, other) -> bool:
+        return self.type == other.type # data and location are ignored
+        
     def __repr__(self) -> str:
         if self.data is None:
-            return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type}"
+            return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type} \n"
+        if type(self.data) is list:
+            strlist = str(self.data)
+            strlist = strlist.replace(", ", "\t")
+            strlist = strlist.replace("[", "\t")
+            strlist = strlist.replace("]", "")
+            return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type}" + allign(self.type, 10) + "\n" + f"{strlist}"
         else:
-            return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type}" + allign(self.type, 12) + f" {self.data}"
+            return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type}" + allign(self.type, 12) + f" {self.data} \n"
     
 def allign(text: any, width: int) -> str:
     return " " * (width - (len(str(text))))
@@ -71,7 +93,7 @@ def info(msg: str):
     
 def printTokArray(tokens: list[token], prefix: str = ""):
     for token in tokens:
-        print(prefix + str(token))
+        print(prefix + str(token), end="")
      
 def usage():
     print("Usage: scribe [options] file")

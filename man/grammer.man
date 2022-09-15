@@ -1,3 +1,6 @@
+THIS DOCUMENT IS NOT QUITE CORRECT AND SHOULD NOT BE USED AS A REFERENCE
+
+
 ID = letter LIST (letter OR digit)
 INT = LIST digit
 FLOAT = LIST digit . LIST (digit)
@@ -10,19 +13,12 @@ TYPE = 'int' 'float' ECT
 
 -----------------------------------------------------
 
-program -> LIST statment 
-
------------------------------------------------------
-
-statement -> declaration OR expression
+program -> LIST declaration
 
 -----------------------------------------------------
 
 declaration -> 
     vardecl 
-    funcdecl
-    structdecl
-    preproc
 
 vardecl     -> TYPE OR ID identifier (= expression; OR funcdecl) 
 funcdecl    -> [(ID LIST (, ID))] { LIST (expression) }
@@ -57,7 +53,7 @@ unaryexpr -> (LPAREN) unop expr (RPAREN)
 
 -----------------------------------------------------
 
-call -> ID LPAREN (expr OR funcdecl,)* RPAREN 
+call -> ID LPAREN LIST (expr OR funcdecl,) RPAREN 
 
 -----------------------------------------------------
 

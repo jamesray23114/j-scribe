@@ -9,4 +9,5 @@ main = {
 
 func<int, int, func<int -> int> -> int> summation = [start, end, f] {  };
 
-summation(1, 10, {1}); 					// returns 10
+summation(1, 10, [x] => x * x;); 					// returns 10
+

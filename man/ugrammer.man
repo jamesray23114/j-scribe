@@ -1,0 +1,30 @@
+unit: 
+    FILE
+    unit any EOF
+    
+value: 
+    ID 
+    expr
+    INT
+    FLOAT
+    STRING
+    BOOL
+    CHAR
+
+expr:
+    {++ --} value
+    value {++ --}
+    {~ !} value 
+    value {* / %} value
+    value {+ -} value
+    value {<< >>} value 
+    value {& | ^} value
+    value {== != < <= > >=} value
+    value {&& ||} value
+    value {= += -= *= /= %= <<= >>= &= |= ^=} value
+    
+arglist:
+    value ,
+    arglist value
+    arglist ,
+

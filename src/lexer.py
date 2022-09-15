@@ -22,8 +22,8 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
                 while char != "\n":
                     pos += 1
                     char = text[pos]
-                if tokens[len(tokens) - 1].type != LEXER.SPACE:
-                    tokens.append(token(location(filename, line, depth), LEXER.SPACE, None))
+                line += 1
+                depth = 0
                 
         ## SPACE ##
                 
@@ -31,6 +31,7 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
             if char == "\n":
                 line += 1
                 depth = 0
+            
         
         ## SEPARATORS ##
         
@@ -38,6 +39,8 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
             tokens.append(token(location(filename, line, depth), LEXER.SEMI, ";"))
         elif char == ",":
             tokens.append(token(location(filename, line, depth), LEXER.COMMA, ","))
+        elif char in "()[]{}":
+            tokens.append(token(location(filename, line, depth), LEXER.GROUP, char))
             
         ## INTEGERS AND FLOATS ##
             
@@ -76,7 +79,7 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
             pos -= 1
             depth -= 1
             
-            tokens.append(token(location(filename, line, cdepth), LEXER.WORD, name))
+            tokens.append(token(location(filename, line, cdepth), LEXER.ID, name))
             
         ## CHARACTERS ##  
             
@@ -118,8 +121,15 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
             
         ## OPERATORS ##
             
-        elif char in "!$#%^&*-=+@|/?<>[]:.(){}": 
-            tokens.append(token(location(filename, line, depth), LEXER.SYMB, char))
+        elif char in "+-*/%=<>!&|^~.?":
+            if char == text[pos + 1] and char in "+-=&|^><":
+                tokens.append(token(location(filename, line, depth), LEXER.OP, char + char))
+                pos += 1
+            elif text[pos + 1] == "=" and char not in ".~":
+                tokens.append(token(location(filename, line, depth), LEXER.OP, char + "="))
+                pos += 1
+            else:
+                tokens.append(token(location(filename, line, depth), LEXER.OP, char))
             
         ## ERROR ##
             
@@ -138,5 +148,3 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
         printTokArray(tokens, " -> [LEXER]: ")
         
     return tokens
-
-    

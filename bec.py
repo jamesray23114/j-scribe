@@ -1,4 +1,4 @@
-import src.compiler as com, src.lexer as lex #, pysrc.generator as gen
+import src.compiler as com, src.lexer as lex, src.parse as par #, pysrc.generator as gen
 from src.common import *
 from sys import argv
 from os import system
@@ -37,6 +37,7 @@ def main():
                 curtime = time.time_ns()
                 print("[INFO]: starting lexer")
                 ltokarr = lex.lex64(file, lverbose)
+                stokarr = par.parse64(ltokarr, lverbose)    
                 print(f"[INFO]: lexer finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             curtime = time.time_ns()
@@ -77,6 +78,11 @@ def main():
         elif args[0] == "-i":
             args = args[1:]
             irun = True
+        
+        elif args[0] == "-v":
+            args = args[1:]
+            cverbose = True
+            lverbose = True
         
         elif args[0] == "-vc":
             args = args[1:]
