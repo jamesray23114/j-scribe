@@ -7,6 +7,7 @@ class LEXER(Enum):
     STRING  = auto()
     ID      = auto()
     
+    HASH    = auto()
     OP      = auto()   
     GROUP   = auto()
     
@@ -24,13 +25,28 @@ class PARSER(Enum):
     PROGRAM     = auto()
     
     EXPR        = auto()
+    CONDITION   = auto()
+    LOGIC       = auto()
+    SUMMAND     = auto()
+    FACTOR      = auto()
+    UNARY       = auto()
     VALUE       = auto()
     
-    COMPARE     = auto()
-    LOGIC       = auto()
-    SHIFT       = auto()
-    FACTOR      = auto()
-    SUM         = auto()
+    PREPROC     = auto()
+    
+    VARDECL     = auto()
+    FUNCDECL    = auto()
+    CLASSDECL   = auto()
+    VARASSIGN   = auto()
+    
+    IF          = auto()
+    WHILE       = auto()
+    FOR         = auto()
+    RETURN      = auto()
+    
+    TYPE        = auto()
+    
+    BOOL        = auto()
     
 class location:
     def __init__(self, file: str, x: int, y: int) -> None:
@@ -48,17 +64,14 @@ class token:
         self.data = data
         
     def __eq__(self, other) -> bool:
-        return self.type == other.type # data and location are ignored
+        if other is token:
+            return self.type == other.type # data and location are ignored
+        else:
+            return self.type == other
         
     def __repr__(self) -> str:
         if self.data is None:
             return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type} \n"
-        if type(self.data) is list:
-            strlist = str(self.data)
-            strlist = strlist.replace(", ", "\t")
-            strlist = strlist.replace("[", "\t")
-            strlist = strlist.replace("]", "")
-            return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type}" + allign(self.type, 10) + "\n" + f"{strlist}"
         else:
             return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type}" + allign(self.type, 12) + f" {self.data} \n"
     

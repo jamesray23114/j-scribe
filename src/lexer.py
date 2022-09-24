@@ -24,10 +24,11 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
                     char = text[pos]
                 line += 1
                 depth = 0
-                
+            
+        
         ## SPACE ##
                 
-        elif char in " \t\n":
+        if char in " \t\n":
             if char == "\n":
                 line += 1
                 depth = 0
@@ -43,6 +44,9 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
             tokens.append(token(location(filename, line, depth), LEXER.GROUP, char))
             
         ## INTEGERS AND FLOATS ##
+            
+        elif char == "#":
+            tokens.append(token(location(filename, line, depth), LEXER.HASH, "#"))
             
         elif char in "0123456789": 
             num = ""
@@ -122,11 +126,14 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
         ## OPERATORS ##
             
         elif char in "+-*/%=<>!&|^~.?":
-            if char == text[pos + 1] and char in "+-=&|^><":
+            if char == text[pos + 1] and char in "+-=&|^":
                 tokens.append(token(location(filename, line, depth), LEXER.OP, char + char))
                 pos += 1
             elif text[pos + 1] == "=" and char not in ".~":
                 tokens.append(token(location(filename, line, depth), LEXER.OP, char + "="))
+                pos += 1
+            elif char == "-" and text[pos + 1] == ">":
+                tokens.append(token(location(filename, line, depth), LEXER.OP, "->"))
                 pos += 1
             else:
                 tokens.append(token(location(filename, line, depth), LEXER.OP, char))
