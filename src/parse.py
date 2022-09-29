@@ -1,6 +1,3 @@
-from ast import arg
-from cmath import exp
-from re import L
 from src.common import *
     
 tok: token = None
@@ -20,7 +17,7 @@ def parse64(ltokens: list[token], verbose: bool):
         if len(ltokens) >= loc:
             return ltokens[-loc]
         else: 
-            return None 
+            return None
     def accept(type: Enum, data: any = None) -> bool:
         global tok 
         if tok.type == type:
@@ -97,10 +94,12 @@ def parse64(ltokens: list[token], verbose: bool):
             if temp is not None:
                 pstack.append(temp)
         
-        
     def makeVarDecl() -> token:
         temp = token(tok.loc, PARSER.VARDECL, [makeType()])
-        temp.data.append(tok)
+        if check(LEXER.ID):
+            temp.data.append(tok)
+        else:
+            error(f"{tok.loc}: expected variable name, got {tok.type} {tok.data} instead.")
         return temp
     def makeVarAssign() -> token:
         temp = token(tok.loc, PARSER.VARASSIGN, [tok])
@@ -118,7 +117,20 @@ def parse64(ltokens: list[token], verbose: bool):
             expect(LEXER.SEMI)
         
         return temp
+    def makeClassDecl() -> token:
+        todo("parse64", "makeClassDecl")
+    def makePreProc() -> token:
         
+        temp = token(tok.loc, PARSER.PREPROC, [ tok ])
+        expect(LEXER.ID)
+        while True:
+            temp.data.append(tok)
+            next()
+            if tok is None:
+                return error(f"parsing error {temp.loc} preprocessor expects semicolon, found none.")
+            if accept(LEXER.SEMI):
+                return temp
+            expect(LEXER.COMMA)
     def makeFuncDecl() -> token:
         
         temp = token(tok.loc, PARSER.FUNCDECL, [])
@@ -148,7 +160,7 @@ def parse64(ltokens: list[token], verbose: bool):
         
         while not accept(LEXER.GROUP, "}"):
             if accept(LEXER.EOF):
-                error(f"{tok.loc}: function definition expects closing brace, none found.")
+                error(f"{temp.loc}: function definition expects closing brace, none found.")
                 
             datlist.append(makeStatement())
             
@@ -159,6 +171,8 @@ def parse64(ltokens: list[token], verbose: bool):
     
     def makeStatement() -> token:
         
+        if accept(LEXER.SEMI):
+            return None
         if accept(LEXER.HASH):
             return makePreProc()
         elif check(LEXER.ID) and peek(1) == LEXER.OP and peek(1).data in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
@@ -173,10 +187,15 @@ def parse64(ltokens: list[token], verbose: bool):
             return makeReturn()
         elif check(LEXER.ID):
             
-            if peek(1) == LEXER.ID:
-                return makeVarDecl()
-            elif peek(1) == LEXER.OP and peek(1).data == "<":
-                return makeVarDecl()
+            if peek(1) == LEXER.ID or (peek(1) == LEXER.OP and peek(1).data == "<"):
+                temp = makeVarDecl()
+                if peek(1) == LEXER.OP and peek(1).data in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
+                    pass
+                else:
+                    next()
+                    expect(LEXER.SEMI)
+                return temp
+                
             else:
                 temp = makeExpr()
                 expect(LEXER.SEMI)
@@ -185,23 +204,7 @@ def parse64(ltokens: list[token], verbose: bool):
             temp = makeExpr()
             expect(LEXER.SEMI)
             return temp
-    
-    def makeClassDecl() -> token:
-        todo("parse64", "makeClassDecl")
-        return
-    def makePreProc() -> token:
-        
-        temp = token(tok.loc, PARSER.PREPROC, [ tok ])
-        expect(LEXER.ID)
-        while True:
-            temp.data.append(tok)
-            next()
-            if tok is None:
-                return error(f"parsing error {temp.loc} preprocessor expects semicolon, found none.")
-            if accept(LEXER.SEMI):
-                return temp
-            expect(LEXER.COMMA)
-        
+
     def makeType() -> token:
         if check(LEXER.ID):
             temp = token(tok.loc, PARSER.TYPE, [ tok ])
@@ -256,8 +259,21 @@ def parse64(ltokens: list[token], verbose: bool):
             return temp
     
     def makeFuncCall() -> token:
-        todo("parse64", "makeFuncCall")
+        temp = token(tok.loc, PARSER.FUNCCALL, [tok])
+        next()
         
+        expect(LEXER.GROUP, "(")
+        
+        if not check(LEXER.GROUP, ")"):
+            temp.data.append(makeExpr())
+        
+        while not accept(LEXER.GROUP, ")"):
+            expect(LEXER.COMMA)
+            if accept(LEXER.EOF):
+                error(f"{tok.loc}: function call expects closing parenthesis, none found.")
+            temp.data.append(makeExpr())
+        
+        return temp        
     def makeIfState() -> token:
         temp = token(tok.loc, PARSER.IF, [])
         
@@ -316,15 +332,28 @@ def parse64(ltokens: list[token], verbose: bool):
             temp.data.append(eliflist)
         
         return temp
-        
-        todo("parse64", "makeIf")
-        
     def makeWhileState() -> token:
-        todo("parse64", "makeWhile")
+        temp = token(tok.loc, PARSER.WHILE, [])
         
+        datlist = []
+        
+        expect(LEXER.GROUP, "(")
+        temp.data.append(makeConditional())
+        expect(LEXER.GROUP, ")")
+        
+        if accept(LEXER.GROUP, "{"):
+            while not accept(LEXER.GROUP, "}"):
+                if accept(LEXER.EOF):
+                    error(f"{tok.loc}: while statement expects closing brace, none found.")
+                datlist.append(makeStatement())
+        else:
+            datlist.append(makeStatement())
+        
+        temp.data.append(datlist)
+        
+        return temp
     def makeForState() -> token:
         todo("parse64", "makeFor")
-        
     def makeReturn() -> token:
         temp = token(tok.loc, PARSER.RETURN, None)
         if accept(LEXER.SEMI):
@@ -335,35 +364,46 @@ def parse64(ltokens: list[token], verbose: bool):
         
     def makeConditional() -> token:
         
-        temp = token(tok.loc, PARSER.CONDITION, [makeExpr()])
+        temp = token(tok.loc, PARSER.CONDITION, [])
+        
+        temp2 = makeExpr()
         
         if accept(LEXER.OP, "=="):
-            temp.data.append(makeExpr())
             temp.data.append("==")
+            temp.data.append(temp2)
+            temp.data.append(makeExpr())
         elif accept(LEXER.OP, "!="):
-            temp.data.append(makeExpr())
             temp.data.append("!=")
+            temp.data.append(temp2)
+            temp.data.append(makeExpr())
         elif accept(LEXER.OP, ">"):
-            temp.data.append(makeExpr())
             temp.data.append(">")
+            temp.data.append(temp2)
+            temp.data.append(makeExpr())
         elif accept(LEXER.OP, ">="):
-            temp.data.append(makeExpr())
             temp.data.append(">=")
+            temp.data.append(temp2)
+            temp.data.append(makeExpr())
         elif accept(LEXER.OP, "<"):
-            temp.data.append(makeExpr())
             temp.data.append("<")
+            temp.data.append(temp2)
+            temp.data.append(makeExpr())
         elif accept(LEXER.OP, "<="):
-            temp.data.append(makeExpr())
             temp.data.append("<=")
+            temp.data.append(temp2)
+            temp.data.append(makeExpr())
         elif accept(LEXER.OP, "&&"):
-            temp.data.append(makeExpr())
             temp.data.append("&&")
+            temp.data.append(temp2)
+            temp.data.append(makeExpr())
         elif accept(LEXER.OP, "||"):
-            temp.data.append(makeExpr())
             temp.data.append("||")
-        elif accept(LEXER.OP, "^^"):
+            temp.data.append(temp2)
             temp.data.append(makeExpr())
+        elif accept(LEXER.OP, "^^"):
             temp.data.append("^^")
+            temp.data.append(temp2)
+            temp.data.append(makeExpr())
         
         return temp      
     def makeLogic() -> token:
@@ -445,7 +485,267 @@ def parse64(ltokens: list[token], verbose: bool):
             
     next()
     out = makeUnit()
-    print(out)
+    
+    if verbose:
+        todo("parse64", "print tree")
+    #with open("out.json", "w") as f:
+    #    f.write("{\n")
+    #    f.write(t)
+    #    f.write("}")
     return out
 
+def printAst(ast: token, depth: int = 1) -> str:
+    
+    out = ""
+    
+        
+    if type(ast) is token:
+        
+        
+        if ast.type == LEXER.INT:
+            out += str(ast.data) 
+        elif ast.type == LEXER.FLOAT:
+            out += str(ast.data)    
+        elif ast.type == LEXER.STRING or ast.type == LEXER.ID:
+            out += "\"" + ast.data + "\""
+        elif ast.type == LEXER.CHAR:
+            out += "\'" + ast.data + "\'"
+        elif ast.type == PARSER.BOOL:
+            out += str(ast.data).lower()
 
+        elif ast.type == PARSER.TYPE:
+            out += "{\n"
+            out += "\t" * (depth + 1)
+            out += "\"name\": " + printAst(ast.data[0], depth + 2) + "\n"
+            out += "\t" * (depth)
+            out += "}"
+            
+
+        elif ast.type == PARSER.EXPR:
+            out += "\t" * depth
+            out += "\"expression\": {\n"
+            out += "\t" * (depth + 1)
+            out += "\"location\": \"" + str(ast.loc) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"operator\": \"" + str(ast.data[0]) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"left\": "
+            
+            if  ast.data[1].type == PARSER.EXPR:
+                out += "{\n"
+                out += printAst(ast.data[1], depth + 2)
+                out += "\t" * (depth + 1)
+                out += "}"
+            else:
+                out += printAst(ast.data[1], depth + 2)
+            
+            out += ",\n"
+            out += "\t" * (depth + 1)
+            out += "\"right\": "
+            
+            if ast.data[2].type == PARSER.EXPR:
+                out += "{\n"
+                out += printAst(ast.data[2], depth + 2)
+                out += "\t" * (depth + 1)
+                out += "}"
+            else:
+                out += printAst(ast.data[2], depth + 2)
+            
+            out += "\n"
+            out += "\t" * depth
+            out += "}\n"
+        elif ast.type == PARSER.CONDITION:
+            out += "\t" * depth
+            out += "\"condition\": {\n"
+            out += "\t" * (depth + 1)
+            out += "\"location\": \"" + str(ast.loc) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"operator\": \"" + str(ast.data[0]) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"left\": "
+            
+            if  ast.data[1].type == PARSER.EXPR:
+                out += "{\n"
+                out += printAst(ast.data[1], depth + 2)
+                out += "\t" * (depth + 1)
+                out += "}"
+            else:
+                out += printAst(ast.data[1], depth + 2)
+            
+            out += ",\n"
+            out += "\t" * (depth + 1)
+            out += "\"right\": "
+            
+            if ast.data[2].type == PARSER.EXPR:
+                out += "{\n"
+                out += printAst(ast.data[2], depth + 2)
+                out += "\t" * (depth + 1)
+                out += "}"
+            else:
+                out += printAst(ast.data[2], depth + 2)
+            
+            out += "\n"
+            out += "\t" * depth
+            out += "}\n"
+            
+        elif ast.type == PARSER.UNIT:
+            out += "\t" * depth 
+            out += "\"unit\": {\n"
+            out += "\t" * (depth + 1) 
+            out += "\"location\": \"" + str(ast.loc) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"program\": [\n"
+            out += printAst(ast.data, depth + 2)
+            out += "\t" * (depth + 1) 
+            out += "]\n"
+            out += "\t" * depth 
+            out += "}\n"                 
+        elif ast.type == PARSER.PREPROC:
+            out += "\t" * depth 
+            out += "\"preproc\": {\n"
+            out += "\t" * (depth + 1) 
+            out += "\"location\": \" " + str(ast.loc) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"directive\":" + printAst(ast.data[0]) + ",\n"
+            out += "\t" * (depth + 1)
+            out += "\"args\": [\n"
+            
+            i = 1
+            while i < len(ast.data):
+                out += "\t" * (depth + 2)
+                out += printAst(ast.data[i], depth + 2)
+                if i + 1 < len(ast.data):
+                    out += ",\n"
+                else:
+                    out += "\n"
+                i += 1
+                
+            
+            out += "\t" * (depth + 1) 
+            out += "]\n"
+            out += "\t" * depth 
+            out += "}"     
+        elif ast.type == PARSER.VARDECL:
+            out += "\t" * depth 
+            out += "\"vardecl\": {\n"
+            out += "\t" * (depth + 1) 
+            out += "\"location\": \"" + str(ast.loc) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"type\": " + printAst(ast.data[0], depth + 1) + ",\n"
+            out += "\t" * (depth + 1)
+            out += "\"name\": " + printAst(ast.data[1], depth + 1) + "\n"
+            out += "\t" * depth 
+            out += "}"
+        elif ast.type == PARSER.FUNCDECL:
+            out += "\t" * depth
+            out += "\"funcdecl\": {\n"
+            out += "\t" * (depth + 1)
+            out += "\"location\": \"" + str(ast.loc) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"args\": [\n"
+            
+            i = 0
+            while i < len(ast.data[0]):
+                out += "\t" * (depth + 2)
+                out += "\"" + ast.data[0][i] + "\""
+                if i + 1 < len(ast.data[0]):
+                    out += ",\n"
+                else:
+                    out += "\n"
+                i += 1
+                
+            out += "\t" * (depth + 1)
+            out += "],\n"
+            out += "\t" * (depth + 1)
+            out += "\"statements\": [\n"
+            out += printAst(ast.data[1], depth + 2)
+            out += "\t" * (depth + 1)
+            out += "]\n"
+            out += "\t" * depth
+            out += "}"
+        elif ast.type == PARSER.VARASSIGN:
+            out += "\t" * depth
+            out += "\"varassign\": {\n"
+            out += "\t" * (depth + 1)
+            out += "\"location\": \"" + str(ast.loc) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"name\": " + printAst(ast.data[0], depth + 1) + ",\n"
+            out += "\t" * (depth + 1)
+            out += "\"operator\": \"" + str(ast.data[1]) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"value\": "
+            
+            if type(ast.data[2]) == token:
+                out += "{\n"
+                out += printAst(ast.data[2], depth + 2)
+                out += "\n"
+                out += "\t" * (depth + 1)
+                out += "}"
+            else:    
+                out += printAst(ast.data[2], depth + 1)
+            out += "\n"
+            out += "\t" * depth
+            out += "}"
+        elif ast.type == PARSER.FUNCCALL:
+            out += "\t" * depth
+            out += "\"funccall\": {\n"
+            out += "\t" * (depth + 1)
+            out += "\"location\": \"" + str(ast.loc) + "\",\n"
+            out += "\t" * (depth + 1)
+            out += "\"name\": " + printAst(ast.data[0], depth + 1) + ",\n"
+            out += "\t" * (depth + 1)
+            out += "\"args\": [\n"
+            
+            i = 1
+            while i < len(ast.data):
+                out += "\t" * (depth + 2)
+                if ast.data[i].type == PARSER.EXPR:
+                    out += "{\n"
+                    out += printAst(ast.data[i], depth + 3)
+                    out += "\t" * (depth + 2)
+                    out += "}"
+                else:
+                    out += printAst(ast.data[i], depth + 2)
+                if i + 1 < len(ast.data):
+                    out += ",\n"
+                else:
+                    out += "\n"
+                i += 1
+                
+            out += "\t" * (depth + 1)
+            out += "]\n"
+            out += "\t" * depth
+            out += "}"
+             
+                
+        else:
+            out += "\t" * depth
+            out += "\"" + str(ast.type) + "\": { \n"
+            out += "\t" * (depth + 1)
+            out += "\"location\": \"" + str(ast.loc) + "\"\n"
+            out += "\t" * depth
+            out += "}"
+            
+            
+    elif type(ast) is list:
+        for i in ast:
+            out += "\t" * depth
+            out += "{\n"
+            out += printAst(i, depth + 1)
+            out += "\n"
+            out += "\t" * depth
+            out += "},\n"
+            
+        out = out[:-2]
+        out += "\n"
+            
+    elif type(ast) is str:
+        out += "\t" * depth
+        out += "\"" + ast + "\""
+        
+    elif type(ast) is int:
+        out += "\t" * depth
+        out += str(ast)
+            
+    return out
+    pass

@@ -38,6 +38,7 @@ class PARSER(Enum):
     FUNCDECL    = auto()
     CLASSDECL   = auto()
     VARASSIGN   = auto()
+    FUNCCALL    = auto()
     
     IF          = auto()
     WHILE       = auto()

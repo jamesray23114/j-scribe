@@ -1,3 +1,5 @@
+------------------------------------------------------------------------
+
 program:
     | [ unit ]
 
@@ -13,7 +15,7 @@ declaration:
 
 vardecl:
     | TYPE ID ';'
-    | TYPE ID { ',' ID }
+    | TYPE ID { ',' ID } ';'
     | TYPE assignment 
     | TYPE assignment { [ ',' assignment ] } 
 
@@ -35,7 +37,8 @@ statement:
     | return
     | assignment
     | vardecl
-    | expr
+    | expr ';'
+    | ';'
 
 classdecl:
     | TODO
@@ -43,9 +46,6 @@ classdecl:
 preproc:
     | '#' ID ';'
     | '#' ID any [ ',' any ] ';'
-
-
-----------------------------------------------------------------
 
 ifState:
     | 'if' '(' condition ')' [ statement ] 
@@ -130,5 +130,6 @@ value:
     | FLOAT
     | STRING
     | CHAR
-    | BOOL
     | '(' expr ')'
+
+------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import src.compiler as com, src.lexer as lex, src.parse as par #, pysrc.generator as gen
+import src.compiler as com, src.lexer as lex, src.parse as par, src.analysis as anl #, pysrc.generator as gen
 from src.common import *
 from sys import argv
 from os import system
@@ -37,10 +37,14 @@ def main():
                 curtime = time.time_ns()
                 print("[INFO]: starting lexer")
                 ltokarr = lex.lex64(file, lverbose)
-                stokarr = par.parse64(ltokarr, lverbose)    
+                ast = par.parse64(ltokarr, lverbose)    
                 print(f"[INFO]: lexer finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             curtime = time.time_ns()
+            
+            print("[INFO]: starting analysis")
+            atokarr = anl.analyze64(ast, cverbose)
+            
             print("[INFO]: starting compiler")    
             ctokarr: list[com.compiler_token] = com.compile64(ltokarr, cverbose)
             print(f"[INFO]: compiler finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
