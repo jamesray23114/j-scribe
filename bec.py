@@ -37,13 +37,17 @@ def main():
                 curtime = time.time_ns()
                 print("[INFO]: starting lexer")
                 ltokarr = lex.lex64(file, lverbose)
-                ast = par.parse64(ltokarr, lverbose)    
                 print(f"[INFO]: lexer finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
+                
+                curtime = time.time_ns()
+                print("[INFO]: starting parser")
+                ast = par.parse64(ltokarr, lverbose)
+                print(f"[INFO]: parser finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")    
             
             curtime = time.time_ns()
-            
             print("[INFO]: starting analysis")
             atokarr = anl.analyze64(ast, cverbose)
+            print(f"[INFO]: analysis finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             print("[INFO]: starting compiler")    
             ctokarr: list[com.compiler_token] = com.compile64(ltokarr, cverbose)

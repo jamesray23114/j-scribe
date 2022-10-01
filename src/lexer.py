@@ -1,5 +1,6 @@
 from io import TextIOWrapper
 from src.common import *
+import os as os
 
 def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
     
@@ -152,6 +153,20 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
     tokens.append(token(location(filename, line, 0), LEXER.EOF, filename))
     
     if verbose:
-        printTokArray(tokens, " -> [LEXER]: ")
+        str = printTokArray(tokens, " -> [LEXER]: ")
+        
+        if not os.path.exists(".test"):
+            os.mkdir(".test")
+            print(" -> [LEXER]: created .text directory")
+            
+        if not os.path.exists(".test/lexer"):
+            os.mkdir(".test/lexer")
+            print(" -> [LEXER]: created .text/lexer directory")
+            
+        with open(".test/lexer/" + tokens[0].loc.file.split("/")[-1], "w") as file:
+            file.write(str)
+        
+        print(" -> [LEXER]: wrote tokens to .test/lexer/" + tokens[0].loc.file.split("/")[-1])
+
         
     return tokens

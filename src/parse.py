@@ -1,11 +1,12 @@
 from src.common import *
+import os
     
 tok: token = None
     
 def parse64(ltokens: list[token], verbose: bool):    
     
     ltokens.reverse()
-    out: list[token] = []
+    out: token = []
     
     def next():
         global tok
@@ -245,6 +246,7 @@ def parse64(ltokens: list[token], verbose: bool):
         if argout != []:
             temp.data.append(argout)
             
+        print(temp)
         
         return temp
     def makeExpr() -> token:
@@ -252,28 +254,10 @@ def parse64(ltokens: list[token], verbose: bool):
             return token(tok.loc, PARSER.BOOL, "true")
         elif accept(LEXER.ID, "false"):
             return token(tok.loc, PARSER.BOOL, "false")
-        elif check(LEXER.ID) and peek(1).type == LEXER.GROUP and peek(1).data == "(":
-            return makeFuncCall()
         else:
-            temp = makeLogic()
+            temp = makeConditional()
             return temp
-    
-    def makeFuncCall() -> token:
-        temp = token(tok.loc, PARSER.FUNCCALL, [tok])
-        next()
         
-        expect(LEXER.GROUP, "(")
-        
-        if not check(LEXER.GROUP, ")"):
-            temp.data.append(makeExpr())
-        
-        while not accept(LEXER.GROUP, ")"):
-            expect(LEXER.COMMA)
-            if accept(LEXER.EOF):
-                error(f"{tok.loc}: function call expects closing parenthesis, none found.")
-            temp.data.append(makeExpr())
-        
-        return temp        
     def makeIfState() -> token:
         temp = token(tok.loc, PARSER.IF, [])
         
@@ -282,16 +266,20 @@ def parse64(ltokens: list[token], verbose: bool):
         elselist = []
         
         expect(LEXER.GROUP, "(")
-        temp.data.append(makeConditional())
+        temp.data.append(makeExpr())
         expect(LEXER.GROUP, ")")
         
         if accept(LEXER.GROUP, "{"):
             while not accept(LEXER.GROUP, "}"):
                 if accept(LEXER.EOF):
                     error(f"{tok.loc}: if statement expects closing brace, none found.")
-                datlist.append(makeStatement())
+                t = makeStatement()
+                if t is not None:
+                    datlist.append(t)
         else:
-            datlist.append(makeStatement())
+            t = makeStatement()
+            if t is not None:
+                datlist.append(t)
         
         while accept(LEXER.ID, "else"):
             
@@ -301,16 +289,20 @@ def parse64(ltokens: list[token], verbose: bool):
                 datlist1 = []
                 
                 expect(LEXER.GROUP, "(")
-                temp1.data.append(makeConditional())
+                temp1.data.append(makeExpr())
                 expect(LEXER.GROUP, ")")
                 
                 if accept(LEXER.GROUP, "{"):
                     while not accept(LEXER.GROUP, "}"):
                         if accept(LEXER.EOF):
                             error(f"{tok.loc}: if statement expects closing brace, none found.")
-                        datlist1.append(makeStatement())
+                        t = makeStatement()
+                        if t is not None:
+                            datlist1.append(makeStatement())
                 else:
-                    datlist1.append(makeStatement())
+                    t = makeStatement()
+                    if t is not None:
+                        datlist1.append(t)
                 
                 temp1.data.append(datlist1)
                 eliflist.append(temp1)
@@ -320,9 +312,13 @@ def parse64(ltokens: list[token], verbose: bool):
                     while not accept(LEXER.GROUP, "}"):
                         if accept(LEXER.EOF):
                             error(f"{tok.loc}: else statement expects closing brace, none found.")
-                        elselist.append(makeStatement())
+                        t = makeStatement()
+                        if t is not None:
+                            elselist.append(t)
                 else:
-                    elselist.append(makeStatement())  
+                    t = makeStatement()
+                    if t is not None:
+                        elselist.append(t)  
         
         temp.data.append(datlist)
         if elselist != []:
@@ -338,7 +334,7 @@ def parse64(ltokens: list[token], verbose: bool):
         datlist = []
         
         expect(LEXER.GROUP, "(")
-        temp.data.append(makeConditional())
+        temp.data.append(makeExpr())
         expect(LEXER.GROUP, ")")
         
         if accept(LEXER.GROUP, "{"):
@@ -364,46 +360,12 @@ def parse64(ltokens: list[token], verbose: bool):
         
     def makeConditional() -> token:
         
-        temp = token(tok.loc, PARSER.CONDITION, [])
+        temp = makeLogic()
         
-        temp2 = makeExpr()
-        
-        if accept(LEXER.OP, "=="):
-            temp.data.append("==")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
-        elif accept(LEXER.OP, "!="):
-            temp.data.append("!=")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
-        elif accept(LEXER.OP, ">"):
-            temp.data.append(">")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
-        elif accept(LEXER.OP, ">="):
-            temp.data.append(">=")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
-        elif accept(LEXER.OP, "<"):
-            temp.data.append("<")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
-        elif accept(LEXER.OP, "<="):
-            temp.data.append("<=")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
-        elif accept(LEXER.OP, "&&"):
-            temp.data.append("&&")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
-        elif accept(LEXER.OP, "||"):
-            temp.data.append("||")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
-        elif accept(LEXER.OP, "^^"):
-            temp.data.append("^^")
-            temp.data.append(temp2)
-            temp.data.append(makeExpr())
+        while check(LEXER.OP, "==") or check(LEXER.OP, "!=") or check(LEXER.OP, "<") or check(LEXER.OP, ">") or check(LEXER.OP, "<=") or check(LEXER.OP, ">=") or check(LEXER.ID, "||") or check(LEXER.ID, "&&"):
+            op = tok.data
+            next()
+            temp = token(tok.loc, PARSER.CONDITION, [op, temp, makeLogic()])
         
         return temp      
     def makeLogic() -> token:
@@ -444,6 +406,12 @@ def parse64(ltokens: list[token], verbose: bool):
         if accept(LEXER.OP, "!"):
             temp = makeValue()
             return token(tok.loc, PARSER.EXPR, ["!", temp])
+        elif accept(LEXER.OP, "*"):
+            temp = makeValue()
+            return token(tok.loc, PARSER.EXPR, ["u*", temp])
+        elif accept(LEXER.OP, "&"):
+            temp = makeValue()
+            return token(tok.loc, PARSER.EXPR, ["u&", temp])
         elif accept(LEXER.OP, "-"):
             temp = makeValue()
             return token(tok.loc, PARSER.EXPR, ["u-", temp])
@@ -463,7 +431,8 @@ def parse64(ltokens: list[token], verbose: bool):
             elif accept(LEXER.OP, "--"):
                 return token(tok.loc, PARSER.EXPR, ["r--", temp])
             else:
-                return temp          
+                return temp       
+               
     def makeValue() -> token:
         temp = tok
         if accept(LEXER.GROUP, "("):
@@ -479,7 +448,23 @@ def parse64(ltokens: list[token], verbose: bool):
         elif accept(LEXER.CHAR):
             return temp
         elif accept(LEXER.ID):
-            return temp
+            if accept(LEXER.GROUP, "("):
+                temp = token(tok.loc, PARSER.FUNCCALL, [temp.data])
+                if not accept(LEXER.GROUP, ")"):
+                    temp.data.append(makeExpr())
+                    while accept(LEXER.COMMA):
+                        temp.data.append(makeExpr())
+                    expect(LEXER.GROUP, ")")
+                return temp
+            elif accept(LEXER.GROUP, "["):
+                temp = token(tok.loc, PARSER.INDEX, [temp.data, makeExpr()])
+                expect(LEXER.GROUP, "]")
+                return temp
+            elif accept(LEXER.OP, "."):
+                temp = token(tok.loc, PARSER.MEMBER, [temp.data, makeValue()])
+                return temp
+            else:
+                return temp
         else:
             error(f"{tok.loc}: expected value, got {tok.type} instead.")
             
@@ -487,11 +472,22 @@ def parse64(ltokens: list[token], verbose: bool):
     out = makeUnit()
     
     if verbose:
-        todo("parse64", "print tree")
-    #with open("out.json", "w") as f:
-    #    f.write("{\n")
-    #    f.write(t)
-    #    f.write("}")
+        
+        if not os.path.exists(".test"):
+            os.mkdir(".test")
+            print(" -> [PARSER]: created directory '.test'")
+        
+        if not os.path.exists(".test/parse"):
+            os.mkdir(".test/parse")
+            print(" -> [PARSER]: created directory '.test/parse'")
+        
+        t = printAst(out)
+        with open(".test/parse/" + out.loc.file.split("/")[-1], "w") as f:
+            f.write("{\n")
+            f.write(t)
+            f.write("}")
+        print(" -> [PARSER]: AST written to " + ".test/parse/" + out.loc.file.split("/")[-1])
+            
     return out
 
 def printAst(ast: token, depth: int = 1) -> str:
@@ -539,21 +535,23 @@ def printAst(ast: token, depth: int = 1) -> str:
             else:
                 out += printAst(ast.data[1], depth + 2)
             
-            out += ",\n"
-            out += "\t" * (depth + 1)
-            out += "\"right\": "
             
-            if ast.data[2].type == PARSER.EXPR:
-                out += "{\n"
-                out += printAst(ast.data[2], depth + 2)
+            if len(ast.data) > 2:
+            
+                out += ",\n"
                 out += "\t" * (depth + 1)
-                out += "}"
-            else:
-                out += printAst(ast.data[2], depth + 2)
+                out += "\"right\": "
+                if ast.data[2].type == PARSER.EXPR:
+                    out += "{\n"
+                    out += printAst(ast.data[2], depth + 2)
+                    out += "\t" * (depth + 1)
+                    out += "}"
+                else:
+                    out += printAst(ast.data[2], depth + 2)
             
             out += "\n"
             out += "\t" * depth
-            out += "}\n"
+            out += "}"
         elif ast.type == PARSER.CONDITION:
             out += "\t" * depth
             out += "\"condition\": {\n"

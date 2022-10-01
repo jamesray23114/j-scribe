@@ -1,8 +1,5 @@
-#include math; 
+x = 100;
 
-func<int, ptr<string> -> int> main = [argc, argv] {
-    if (argc != 2) 
-        print("");
+main = {
 
-    print("Hello, World!", 1, t(1));
 }

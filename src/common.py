@@ -47,7 +47,14 @@ class PARSER(Enum):
     
     TYPE        = auto()
     
+    INDEX       = auto()
+    MEMBER      = auto()
     BOOL        = auto()
+    
+class ANALYSIS(Enum):
+    
+    FUNCTION    = auto()
+    VARIABLE    = auto()
     
 class location:
     def __init__(self, file: str, x: int, y: int) -> None:
@@ -106,9 +113,11 @@ def info(msg: str):
     print(msg)
     
 def printTokArray(tokens: list[token], prefix: str = ""):
+    out = ""
     for token in tokens:
-        print(prefix + str(token), end="")
-     
+        out += prefix + str(token)
+    return out
+        
 def usage():
     print("Usage: scribe [options] file")
     print("options:")

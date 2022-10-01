@@ -1,68 +1,211 @@
-THIS DOCUMENT IS NOT QUITE CORRECT AND SHOULD NOT BE USED AS A REFERENCE
+------------------------------------------------------------------------
 
+program:
+    | [ unit ]
 
-ID = letter LIST (letter OR digit)
-INT = LIST digit
-FLOAT = LIST digit . LIST (digit)
-ESCAPE = '\n' '\r' '\t' '\b' '\f' '\' '\"' '\\'
-CHAR = 'letter' 'digit' 'symbol' ESCAPE
-STRING = " LIST (CHAR OR ESCAPE) "  
-TYPE = 'int' 'float' ECT
-    func(<(TYPE OR ID) ( -> TYPE OR ID)>)
-    ptr<TYPE OR ID>
+unit:
+    | FILE [ declaration ] EOF
 
------------------------------------------------------
+declaration:
+    | vardecl
+    | funcdecl
+    | classdecl
+    | preproc
+    | assignment
 
-program -> LIST declaration
+vardecl:
+    | TYPE ID ';'
+    | TYPE ID { ',' ID } ';'
+    | TYPE assignment 
+    | TYPE assignment { [ ',' assignment ] } 
 
------------------------------------------------------
+TYPE:
+    | ID
+    | ID '<' TYPE [ ',' TYPE] '>'
+    | ID '<' TYPE [ ',' TYPE] '->' TYPE [ ',' TYPE ] '>'
 
-declaration -> 
-    vardecl 
+funcdecl:
+    | '{' [ statement ] '}'
+    | '[' ID ']' '{' [ statement ] '}'
+    | '[' ID [ ',' ID ] ']' '{' [ statement ] '}'
 
-vardecl     -> TYPE OR ID identifier (= expression; OR funcdecl) 
-funcdecl    -> [(ID LIST (, ID))] { LIST (expression) }
-structdecl  -> struct ID { LIST (vardecl OR structdecl) }
-preproc     -> # ID (<LIST any>)
+statement:
+    | preproc
+    | ifState
+    | forState
+    | whileState
+    | return
+    | assignment
+    | vardecl
+    | expr ';'
+    | ';'
 
------------------------------------------------------
+classdecl:
+    | TODO
 
-expressions -> 
-    expr ;  
-    loopexpr
-    returnexpr
-    ; 
+preproc:
+    | '#' ID ';'
+    | '#' ID any [ ',' any ] ';'
 
------------------------------------------------------
+ifState:
+    | 'if' '(' condition ')' [ statement ] 
+    | 'if' '(' condition ')' [ statement ] 'else' [ statement ]
+    | 'if' '(' condition ')' [ statement ] 'else' ifState
 
-expr -> 
-    mut relop expr OR funcdecl
-    mut++ OR ++mut
-    mut-- OR --mut
-    binaryexpr
-    unaryexpr
-    value
+forState:
+    TODO
 
-    relop: < <= >= == !=
-    value: ID expr call constant ETC
+whileState:
+    | 'while' '(' condition ')' statement
+    | 'while' '(' condition ')' [ statement ]
 
-binaryexpr -> (LPAREN) expr binop expr (RPAREN)
-    binop: + - * / % << >> & && | || ^ ^^ ECT
-unaryexpr -> (LPAREN) unop expr (RPAREN) 
-    unop: + - ~ ! ETC
+return:
+    | 'return' ';'
+    | 'return' expr ';'
 
------------------------------------------------------
+expr:
+    | logic 
+    | funcCall
+    | 'true'
+    | 'false'
 
-call -> ID LPAREN LIST (expr OR funcdecl,) RPAREN 
+assignment:
+    | ID '=' expr ';'
+    | ID '+=' expr ';'
+    | ID '-=' expr ';'
+    | ID '*=' expr ';'
+    | ID '/=' expr ';'
+    | ID '%=' expr ';'
+    | ID '&=' expr ';'
+    | ID '|=' expr ';'
+    | ID '^=' expr ';'
+    | ID '=' funcdecl
 
------------------------------------------------------
+condition:
+    | expr [ '==' expr ]
+    | expr [ '!=' expr ]
+    | expr [ '<'  expr ]
+    | expr [ '>'  expr ]
+    | expr [ '<=' expr ]
+    | expr [ '>=' expr ]
+    | expr [ '&&' expr ]
+    | expr [ '||' expr ]
+    | expr [ '^^' expr ]
+    | expr
+    
+logic:
+    | summand [ '&'  summand ]
+    | summand [ '|'  summand ]
+    | summand [ '^'  summand ]
+    | summand [ '<<' summand ]
+    | summand [ '>>' summand ]
+    | summand
 
-loopexpr -> while for
-    while -> while LPAREN expr RPAREN { LIST (expression) }
-    for -> for LPAREN (expr) ; (expr) ; (expr) RPAREN { LIST (expression) }
+summand:
+    | factor [ '+' factor ]
+    | factor [ '-' factor ]
+    | factor
 
------------------------------------------------------
+factor:
+    | unary [ '*' unary ]
+    | unary [ '/' unary ]
+    | unary [ '%' unary ]
+    | unary
 
-returnexpr -> return (expr) ;
+unary:
+    | '-' value
+    | '!' value
+    | '~' value
+    | '++' value
+    | '--' value
+    | value '++'
+    | value '--'
+    | value
 
------------------------------------------------------
+value:
+    | ID
+    | INT
+    | FLOAT
+    | STRING
+    | CHAR
+    | '(' expr ')'
+
+------------------------------------------------------------------------
+
+unit: {
+    location:   string,
+    inst:       [declaration]
+}
+
+preproc: {
+    location:   string,
+    directive:  string
+    args:       [any]
+}
+
+type: {
+    location:   string,
+    name:       id,
+    generics:   [type],
+    returns:    [type]
+}
+
+vardecl: {
+    location:   string,
+    type:       type,
+    name:       id,
+}
+
+varassign: {
+    location:   string,
+    name:       id,
+    op:         string,
+    value:      expr | funcdecl | const
+}
+
+funcdecl: {
+    location:   string,
+    args:       [id],
+    body:       [statement]
+}
+
+ifstate: {
+    location:   string,
+    condition:  expr,
+    if:         [statement],
+    elif:       [ifstate], // this does not contain elif or else
+    else:       [statement]
+}
+
+whilestate: {
+    location:   string,
+    condition:  expr,
+    if:        [statement]
+}
+
+returnstate: {
+    location:   string,
+    value:      expr
+}
+
+expr: {
+    location:   string,
+    op:         string,
+    left:       expr | const,
+    right:      expr | const
+}
+
+------------------------------------------------------------------------
+
+variable: {
+    scope:      [int], 
+    id:         int  
+    type:       type,
+    name:       id,
+}
+
+function: {
+    scope:      [int],   
+    id:         int,     // temp name given to function, i.e. .f0
+    args:       [id]
+}
