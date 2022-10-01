@@ -246,8 +246,6 @@ def parse64(ltokens: list[token], verbose: bool):
         if argout != []:
             temp.data.append(argout)
             
-        print(temp)
-        
         return temp
     def makeExpr() -> token:
         if accept(LEXER.ID, "true"):
