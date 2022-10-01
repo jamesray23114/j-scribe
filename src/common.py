@@ -84,9 +84,23 @@ class token:
             return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type}" + allign(self.type, 12) + f" {self.data} \n"
     
 def allign(text: any, width: int) -> str:
+    """ returns a string with 'width' spaces after 'text'
+
+    Args:
+        text (any): text to allign, will be converted to string
+        width (int): width of the alligned text
+
+    Returns:
+        str: alligned text
+    """
     return " " * (width - (len(str(text))))
     
 def error(msg: str):
+    """ prints an error message and exits
+
+    Args:
+        msg (str): message to print
+    """
     print("[\u001b[31;1m", end="")
     print("ERROR", end="")
     print("\u001b[0m]: ", end="")
@@ -95,6 +109,12 @@ def error(msg: str):
     exit(0)
     
 def todo(func: str, msg: str):
+    """ prints a todo message and exits
+
+    Args:
+        func (str): function to work on
+        msg (str):  message to print
+    """
     print("[\u001b[33;1m", end="")
     print("TODO", end="")
     print("\u001b[0m]: ", end="")
@@ -103,22 +123,47 @@ def todo(func: str, msg: str):
     exit(0)
     
 def warn(msg: str):
+    """ prints a warning message
+
+    Args:
+        msg (str): message to print
+    """
     print("[\u001b[33;1m", end="")
     print("WARN", end="")
     print("\u001b[0m]: ", end="")
     print(msg)
     
 def info(msg: str):
+    """ prints an info message
+
+    Args:
+        msg (str): message to print
+    """
     print("[INFO]: ", end="")
     print(msg)
     
-def printTokArray(tokens: list[token], prefix: str = ""):
+def printTokArray(tokens: list[token], prefix: str = "") -> str:
+    """ returns a string representation of a list of tokens
+    
+    NEARING DEPRECATION: waiting for replacement method   
+
+    Args:
+        tokens (list[token]): list of tokens to print
+        prefix (str, optional): prefix to print before each token. Defaults to "".
+
+
+    Returns:
+        str: string representation of the list of tokens
+    """
     out = ""
     for token in tokens:
         out += prefix + str(token)
     return out
         
 def usage():
+    """ prints the usage of the program and exits
+    """
+    
     print("Usage: scribe [options] file")
     print("options:")
     print("\t -c                    compile file")

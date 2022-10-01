@@ -3,6 +3,15 @@ from src.common import *
 import os as os
 
 def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
+    """ lexes a file and returns a list of tokens
+
+    Args:
+        file (TextIOWrapper): file to lex, must be opened in read mode
+        verbose (bool): verbose output
+
+    Returns:
+        list[token]: list of lexer tokens
+    """
     
     filename = file.name
     text = file.read() + "\n"

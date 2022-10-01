@@ -3,23 +3,53 @@ import os
     
 tok: token = None
     
-def parse64(ltokens: list[token], verbose: bool):    
+def parse64(ltokens: list[token], verbose: bool) -> token:    
+    """ parses a list of lexer tokens and returns the ast root token
+
+    Args:
+        ltokens (list[token]): list of lexer tokens
+        verbose (bool): verbose output
+
+    Returns:
+        token: ast root token
+    """    
     
     ltokens.reverse()
-    out: token = []
+    out: token = 0
     
     def next():
+        """ gets the next token from 'ltokens'
+        """
         global tok
         if len(ltokens) > 0:
             tok = ltokens.pop()
         else:
             tok = None        
+    
     def peek(loc: int) -> token:
+        """ gets the token at 'loc' from 'ltokens'
+        
+        Args:
+            loc (int): location of the token to get
+        
+        Returns:
+            token: token at 'loc' from 'ltokens'
+        """ 
         if len(ltokens) >= loc:
             return ltokens[-loc]
         else: 
             return None
+        
     def accept(type: Enum, data: any = None) -> bool:
+        """ checks if the next token is of a certain type and data, and calls 'next' if it is
+
+        Args:
+            type (Enum): type to check
+            data (any, optional): specific data to check. Defaults to None.
+
+        Returns:
+            bool: true if the current token matches the type and data
+        """             
         global tok 
         if tok.type == type:
             if data is None:
@@ -29,14 +59,34 @@ def parse64(ltokens: list[token], verbose: bool):
                 next()
                 return True
         return False
+    
     def check(type: Enum, data: any = None) -> bool:
+        """ checks if the next token is of a certain type and data, does not call 'next'
+
+        Args:
+            type (Enum): type to check
+            data (any, optional): specific data to check. Defaults to None.
+
+        Returns:
+            bool: true if the current token matches the type and data
+        """     
         if tok.type == type:
             if data is None:
                 return True
             elif tok.data == data:
                 return True
         return False
+    
     def expect(type: Enum, data: any = None) -> bool:
+        """ checks if the next token is of a certain type and data, and calls 'next' if it is, otherwise raises an error
+
+        Args:
+            type (Enum): type to check
+            data (any, optional): specific data to check. Defaults to None.
+
+        Returns:
+            bool: true if the current token matches the type and data
+        """        
         global tok 
         if accept(type, data):
             return True
@@ -46,6 +96,23 @@ def parse64(ltokens: list[token], verbose: bool):
             error(f"{tok.loc}: expected {type} {data}, got {tok.type} {tok.data} instead.")
     
     def makeUnit() -> token:
+        """ attemps to make a unit node, the base node for a single file
+        
+        TODO: add support for multiple files / include statements
+        TODO: determine how to handle headers and precompiled files
+        TODO: add makeDeclaration function and replace the code below with it
+        TODO: classes / structs, enums, and unions
+        TODO: determine if preprocessor directives should be handled here, and what directives should be supported
+        
+        Requires:
+            LEXER.FILE
+            ...
+            LEXER.EOF
+
+        Returns:
+            token: ast root node
+            error: if the tokens do not match the requirements
+        """        
         global tok
         out = token(tok.loc, PARSER.UNIT, None)
         expect (LEXER.FILE)
@@ -96,6 +163,20 @@ def parse64(ltokens: list[token], verbose: bool):
                 pstack.append(temp)
         
     def makeVarDecl() -> token:
+        """ attemps to make a variable declaration node
+
+        TODO: multiple variable declaration and modifiers (static, const, etc.)
+
+        Requires:
+            LEXER.ID
+            LEXER.ID
+            ...
+            LEXER.SEMI or LEXER.GROUP
+                
+        Returns:
+            token: variable declaration node
+            error: if the tokens do not match the requirements
+        """        
         temp = token(tok.loc, PARSER.VARDECL, [makeType()])
         if check(LEXER.ID):
             temp.data.append(tok)
@@ -118,10 +199,27 @@ def parse64(ltokens: list[token], verbose: bool):
             expect(LEXER.SEMI)
         
         return temp
+    
     def makeClassDecl() -> token:
         todo("parse64", "makeClassDecl")
-    def makePreProc() -> token:
         
+    def makePreProc() -> token:
+        """ attemps to make a preprocessor node
+
+        TODO: the variability of preprocessor directives makes it difficult to parse them, different directives should be parsed in their own functions
+        TODO: include directives should be parsed and lexed in thier respective stages, not after 
+        
+        Requires:
+            LEXER.HASH
+            LEXER.ID
+            ...
+            LEXER.SEMI
+
+        Returns:
+            token: preprocessor node
+            error: if the tokens do not match the requirements
+        """       
+         
         temp = token(tok.loc, PARSER.PREPROC, [ tok ])
         expect(LEXER.ID)
         while True:
@@ -132,7 +230,26 @@ def parse64(ltokens: list[token], verbose: bool):
             if accept(LEXER.SEMI):
                 return temp
             expect(LEXER.COMMA)
+            
     def makeFuncDecl() -> token:
+        """ attemps to make a function declaration node
+
+        TODO: default arguments (e.g. [x = 0] => return x;)
+        TODO: single line function declaration (e.g. [x] => return x;)
+        TODO: simple return type inference (e.g. [x] => x; ) 
+        TODO: inline calling (e.g. y => { if(x > 0) return x; return 0; }, same as func x = { if(x > 0) return x; return 0; } y = x(); )
+        TODO: determine if above should be done in that way, or if it should be implemented at all
+
+        Requires:
+            ...
+            LEXER.GROUP
+            ...
+            LEXER.GROUP
+
+        Returns:
+            token: function declaration node
+            error: if the tokens do not match the requirements
+        """        
         
         temp = token(tok.loc, PARSER.FUNCDECL, [])
         
@@ -171,6 +288,20 @@ def parse64(ltokens: list[token], verbose: bool):
         return temp
     
     def makeStatement() -> token:
+        """ attemps to make a statement node
+
+        TODO: determine how to handle for loops
+        TODO: goto?
+        TODO: do while?
+        TODO: switch and match statements
+        
+        Requires:
+            ...
+
+        Returns:
+            token: statement node
+            error: a matching statement node could not be made
+        """        
         
         if accept(LEXER.SEMI):
             return None
@@ -207,6 +338,18 @@ def parse64(ltokens: list[token], verbose: bool):
             return temp
 
     def makeType() -> token:
+        """ attemps to make a type node
+
+        TODO: the data contained in type nodes only contains id's, storing the entire token is unnecessary
+
+        Requires:
+            LEXER.ID
+            ...
+            
+        Returns:
+            token: type node
+            error: if the tokens do not match the requirements
+        """        
         if check(LEXER.ID):
             temp = token(tok.loc, PARSER.TYPE, [ tok ])
             next()
@@ -247,7 +390,17 @@ def parse64(ltokens: list[token], verbose: bool):
             temp.data.append(argout)
             
         return temp
+    
     def makeExpr() -> token:
+        """ attemps to make an expression node
+
+        TODO: some expressions keep thier base tokens, others do not, this should be consistent
+        TODO: ternary operator (and other compound expressions) 
+
+        Returns:
+            token: expression node
+            error: if an expression node could not be made
+        """        
         if accept(LEXER.ID, "true"):
             return token(tok.loc, PARSER.BOOL, "true")
         elif accept(LEXER.ID, "false"):
@@ -257,6 +410,19 @@ def parse64(ltokens: list[token], verbose: bool):
             return temp
         
     def makeIfState() -> token:
+        """ attemps to make an if statement node
+
+        TODO: determine if this should be handled in this way
+        TODO: extract repeated code into a function
+
+        Requires:
+            LEXER.ID
+            ...
+
+        Returns:
+            token: if statement node
+            error: if the tokens do not match the requirements
+        """
         temp = token(tok.loc, PARSER.IF, [])
         
         datlist = []
@@ -326,7 +492,19 @@ def parse64(ltokens: list[token], verbose: bool):
             temp.data.append(eliflist)
         
         return temp
+    
     def makeWhileState() -> token:
+        """ attemps to make a while statement node
+
+        TODO: do while?
+
+        Requires:
+            LEXER.ID
+            ...
+
+        Returns:
+            token: while statement node
+        """        
         temp = token(tok.loc, PARSER.WHILE, [])
         
         datlist = []
@@ -346,9 +524,23 @@ def parse64(ltokens: list[token], verbose: bool):
         temp.data.append(datlist)
         
         return temp
+    
     def makeForState() -> token:
         todo("parse64", "makeFor")
+    
     def makeReturn() -> token:
+        """ attemps to make a return statement node
+
+        TODO: multiple return values
+
+        Requires:
+            LEXER.ID
+            ...
+            LEXER.SEMI
+    
+        Returns:
+            token: return statement node
+        """        
         temp = token(tok.loc, PARSER.RETURN, None)
         if accept(LEXER.SEMI):
             return temp
@@ -366,6 +558,7 @@ def parse64(ltokens: list[token], verbose: bool):
             temp = token(tok.loc, PARSER.CONDITION, [op, temp, makeLogic()])
         
         return temp      
+    
     def makeLogic() -> token:
         temp = makeSummand()
         
@@ -386,20 +579,23 @@ def parse64(ltokens: list[token], verbose: bool):
                 temp = token(temp.loc, PARSER.EXPR, [op, temp, makeSummand()])
             
         return temp
+    
     def makeSummand() -> token:
         temp = makeFactor()
         while check(LEXER.OP, "+") or check(LEXER.OP, "-"):
             op = tok.data
             next()
             temp = token(temp.loc, PARSER.EXPR, [op, temp, makeFactor()])
-        return temp     
+        return temp    
+     
     def makeFactor() -> token:
         temp = makeUnary()
         while check(LEXER.OP, "*") or check(LEXER.OP, "/") or check(LEXER.OP, "%"):
             op = tok.data
             next()
             temp = token(temp.loc, PARSER.EXPR, [op, temp, makeUnary()])
-        return temp        
+        return temp   
+         
     def makeUnary() -> token:
         if accept(LEXER.OP, "!"):
             temp = makeValue()
@@ -489,6 +685,20 @@ def parse64(ltokens: list[token], verbose: bool):
     return out
 
 def printAst(ast: token, depth: int = 1) -> str:
+    """ returns a string representation of the AST
+
+    TODO: completely redo this function
+    TODO: dont use json, use a custom format. json makes it hard to read because of indentation
+    TODO: determine if another format would be better, or if plain text would be better
+    TODO: less repetition
+
+    Args:
+        ast (token): the root node of the AST
+        depth (int, optional): the amount of tabs to print, used internally. Defaults to 1.
+
+    Returns:
+        str: the string representation of the AST
+    """    
     
     out = ""
     
@@ -744,4 +954,3 @@ def printAst(ast: token, depth: int = 1) -> str:
         out += str(ast)
             
     return out
-    pass

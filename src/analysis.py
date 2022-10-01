@@ -3,6 +3,12 @@ from src.lexer  import *
 from src.parse  import *
 
 def analyze64(ast: token, verbose: bool):
+    """ analyzes the ast assuming 64 bit architecture
+
+    Args:
+        ast (token): the root ast token
+        verbose (bool): if true, prints out the symbol table, type information, and other information
+    """
     
     makeID.val = 0
     symb = make_symboltable(ast)
@@ -46,10 +52,30 @@ def analyze64(ast: token, verbose: bool):
     todo("analyze64", "analyze")
     
 def makeID() -> int:
+    """ makes a unique ID (int) for each variable and function
+
+    Args:
+        makeID.val (int): the current ID, should be 0 at the start of each anylysis stage
+
+    Returns:
+        int: unique ID
+    """
+    
     makeID.val += 1
     return makeID.val
     
-def makeglobaltype(type: str, generics = [], returns = []):
+def makeglobaltype(type: str, generics = [], returns = []) -> token:
+    """ makes a global type for use in intrinsic varaibles / functions
+
+    Args:
+        type (str): the name of the type being made
+        generics (list, optional): list of generic types.
+        returns (list, optional): list of return types. 
+
+    Returns:
+        token: a valid token of type PARSER.TYPE 
+    """
+    
     glb = location("global", 0, 0)
     
     if returns != []:
@@ -59,7 +85,16 @@ def makeglobaltype(type: str, generics = [], returns = []):
     else:
         return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, [type])])
     
-def makeglobalvar(name: str, type):
+def makeglobalvar(name: str, type: token) -> token:
+    """ makes a global variable to add to the symbol table
+
+    Args:
+        name (str): the name of the variable
+        type (token): the type of the variable, must be a valid token of type PARSER.TYPE
+
+    Returns:
+        token: a valid token of type ANALYZE.VARIABLE
+    """
     
     glb = location("global", 0, 0)
     
@@ -72,6 +107,17 @@ def makeglobalvar(name: str, type):
     return out
         
 def make_symboltable(ast: token, loc: list[int] = []) -> tuple[list[token], list[token]]:
+    """ returns a list of all variables and functions in the program
+
+    Args:
+        ast (token): the root ast token
+        loc (list[int], optional): the current scope, used by this function
+
+    Returns:
+        tuple[list[token], list[token]]:
+            [0]: list of all functions in the program 
+            [1]: list of all variables in the program
+    """
     
     functions = []
     variables = []
@@ -163,6 +209,7 @@ def find_tok(tok: token, symb: tuple[list[token], list[token]], loc: list[int]) 
         
         Returns:
             token: the token from the symbol table
+            error: halts the program if the token is not found or duplicates are found
     """
     out = 0
     main = 0
@@ -195,7 +242,7 @@ def check_scope(tok: token, loc: list[int]) -> bool:
         loc (list[int]): the current scope
 
     Returns:
-        bool: whether the token is in the current scope
+        bool: true if token is in the current scope, false otherwise
     """
     
     if loc == [] and tok.data[0] != []:
@@ -210,8 +257,20 @@ def check_scope(tok: token, loc: list[int]) -> bool:
     
     return True
 
-
 def check_type(tok: token) -> bool:
+    pass
+
+def check_typename(tok: token) -> bool:
+    """ checks if the 'type' token has a valid type name
+
+    Args:
+        tok (token): the token to check, must be of type PARSER.TYPE
+
+    Returns:
+        bool: returns true if the type name is valid
+        error: halts program on error
+    """
+
 
     stypes = [ #simple types
         "int",
@@ -237,7 +296,7 @@ def check_type(tok: token) -> bool:
     elif tok.data[0].data in ctypes:
         if len(tok.data) == 2:
             for t in tok.data[1]:
-                check_type(t)
+                check_typename(t)
             return True
         elif len(tok.data) == 3:
             
@@ -245,9 +304,9 @@ def check_type(tok: token) -> bool:
                 error(f"{tok.loc}: pointer type cannot have return types")
             
             for t in tok.data[1]:
-                check_type(t)
+                check_typename(t)
             for t in tok.data[2]:
-                check_type(t)
+                check_typename(t)
             return True
         else:
             return True
@@ -269,7 +328,7 @@ def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[int] = [
     elif ast.type == PARSER.VARDECL:
         makeID()
         
-        check_type(ast.data[0])
+        check_typename(ast.data[0])
         
         todo("verify", "verify vardecl") 
             # [ ] check if vardecl has valid type
