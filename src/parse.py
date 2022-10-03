@@ -6,6 +6,9 @@ tok: token = None
 def parse64(ltokens: list[token], verbose: bool) -> token:    
     """ parses a list of lexer tokens and returns the ast root token
 
+    TODO: provide more information about what is stored in each tokens data based on the token type (information is stored in man/grammer.man)
+    TODO: determine which parser to use, currently using a LL(k) parser, where k is commonly 1 (though not always)
+    
     Args:
         ltokens (list[token]): list of lexer tokens
         verbose (bool): verbose output

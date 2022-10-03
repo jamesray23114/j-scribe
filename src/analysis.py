@@ -5,6 +5,8 @@ from src.parse  import *
 def analyze64(ast: token, verbose: bool):
     """ analyzes the ast assuming 64 bit architecture
 
+    TODO: finish this function
+
     Args:
         ast (token): the root ast token
         verbose (bool): if true, prints out the symbol table, type information, and other information
@@ -67,6 +69,8 @@ def makeID() -> int:
 def makeglobaltype(type: str, generics = [], returns = []) -> token:
     """ makes a global type for use in intrinsic varaibles / functions
 
+    TODO: determine if there is a better way to do this, should be changed when types are changed
+
     Args:
         type (str): the name of the type being made
         generics (list, optional): list of generic types.
@@ -88,6 +92,8 @@ def makeglobaltype(type: str, generics = [], returns = []) -> token:
 def makeglobalvar(name: str, type: token) -> token:
     """ makes a global variable to add to the symbol table
 
+    TODO: determine if there is a better way to do this, should be changed when types are changed
+
     Args:
         name (str): the name of the variable
         type (token): the type of the variable, must be a valid token of type PARSER.TYPE
@@ -108,6 +114,12 @@ def makeglobalvar(name: str, type: token) -> token:
         
 def make_symboltable(ast: token, loc: list[int] = []) -> tuple[list[token], list[token]]:
     """ returns a list of all variables and functions in the program
+
+    TODO: determine a more efficient way to do this
+    TODO: determine if varaibles need a unique ID
+    TODO: determine if other information needs to be stored in the symbol table
+    TODO: classes, enums, unions, etc.
+    TODO: provide more information about what is stored in *.data, such as what is stored in each index (unions would help here...)
 
     Args:
         ast (token): the root ast token
@@ -167,7 +179,6 @@ def make_symboltable(ast: token, loc: list[int] = []) -> tuple[list[token], list
             functions += r[0]
             variables += r[1]
             
-        
         if ast.data[2] is not None:
             for ifstate in ast.data[2]:
                 temp = loc.copy()
@@ -201,6 +212,8 @@ def find_tok(tok: token, symb: tuple[list[token], list[token]], loc: list[int]) 
     """ 
         returns a token from the symbol table whose id matches 'tok' and
         ensures the token has no duplicates + exists in the current scope
+        
+        TODO: determine if this is the best way to do this (e.g. should the symbol table be sorted?)
         
         Args:
             tok (token):  the id token whose name is searched for
@@ -263,6 +276,8 @@ def check_type(tok: token) -> bool:
 def check_typename(tok: token) -> bool:
     """ checks if the 'type' token has a valid type name
 
+    TODO: custom types
+
     Args:
         tok (token): the token to check, must be of type PARSER.TYPE
 
@@ -314,6 +329,18 @@ def check_typename(tok: token) -> bool:
  
 
 def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[int] = []) -> token:
+    """ verifies the syntax of the program
+
+    TODO: finish this
+
+    Args:
+        ast (token): the abstract syntax tree
+        symb (tuple): the symbol table
+        loc (list[int]: the current scope, used internally. Defaults to [].
+
+    Returns:
+        token: ?
+    """    
     
     #print(symb)
     

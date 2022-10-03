@@ -5,6 +5,9 @@ import os as os
 def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
     """ lexes a file and returns a list of tokens
 
+    TODO: fix comments and location tracking, currently comments will sometimes not change the location over multiple lines
+    TODO: determine if the lexer should be able to handle multiple files, and if it should handle includes
+
     Args:
         file (TextIOWrapper): file to lex, must be opened in read mode
         verbose (bool): verbose output
