@@ -15,6 +15,23 @@ def analyze64(ast: token, verbose: bool):
     makeID.val = 0
     symb = make_symboltable(ast)
     
+    if verbose:
+        if not os.path.exists(".test"):
+            os.mkdir(".test")
+            print(" -> [LEXER]: created .text directory")
+            
+        if not os.path.exists(".test/analysis"):
+            os.mkdir(".test/analysis")
+            print(" -> [LEXER]: created .test/analysis directory")
+            
+        with open(".test/analysis/" + "symb_" + ast.loc.file.split("/")[-1], "w") as file:
+            file.write(str(symb))
+        
+        print(" -> [LEXER]: wrote tokens to .test/analysis/" + "symb_" + ast.loc.file.split("/")[-1])
+
+            
+        
+    
     # main
     symb[1].append(makeglobalvar("main", makeglobaltype(
         "func",
@@ -50,7 +67,6 @@ def analyze64(ast: token, verbose: bool):
     makeID.val = 0
     verf = verify(ast, symb)
     
-    
     todo("analyze64", "analyze")
     
 def makeID() -> int:
@@ -83,11 +99,11 @@ def makeglobaltype(type: str, generics = [], returns = []) -> token:
     glb = location("global", 0, 0)
     
     if returns != []:
-        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, [type]), generics, returns])
+        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, type), generics, returns])
     elif generics != [] and returns == []:
-        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, [type]), generics])
+        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, type), generics])
     else:
-        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, [type])])
+        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, type)])
     
 def makeglobalvar(name: str, type: token) -> token:
     """ makes a global variable to add to the symbol table
@@ -206,8 +222,6 @@ def make_symboltable(ast: token, loc: list[int] = []) -> tuple[list[token], list
     
     return functions, variables
 
-
-
 def find_tok(tok: token, symb: tuple[list[token], list[token]], loc: list[int]) -> token:
     """ 
         returns a token from the symbol table whose id matches 'tok' and
@@ -228,13 +242,15 @@ def find_tok(tok: token, symb: tuple[list[token], list[token]], loc: list[int]) 
     main = 0
     
     for var in symb[1]:
+        
         if var.data[3].data == tok.data:
             if not check_scope(var, loc):
                 continue
+            
             if var.data[3].data == "main" and main == 0:
                 main = var
-                out = var
-            elif out != 0:
+                
+            elif out == 0:
                 out = var
             else:
                 error(f"{tok.loc}: variable '{tok.data}' has duplicate definitions")
@@ -270,10 +286,67 @@ def check_scope(tok: token, loc: list[int]) -> bool:
     
     return True
 
-def check_type(tok: token) -> bool:
-    pass
+def check_type(t: token, compare: token) -> bool:
+    
+    if t.type != PARSER.TYPE:
+        error(f"{t.loc}: type expected, got {t.type} instead")
+        
+    typename = t.data[0].data
+    
+    if typename == "int":
+        if compare.type == LEXER.INT:
+            return True
+        else:
+            error(f"{compare.loc}: type mismatch, expected {typename}, got {compare.type} instead")
 
-def check_typename(tok: token) -> bool:
+    elif typename == "float":
+        if compare.type == LEXER.FLOAT:
+            return True
+        else:
+            error(f"{compare.loc}: type mismatch, expected {typename}, got {compare.type} instead")
+            
+    elif typename == "char":
+        if compare.type == LEXER.CHAR:
+            return True
+        else:
+            error(f"{compare.loc}: type mismatch, expected {typename}, got {compare.type} instead")
+            
+    elif typename == "string":
+        if compare.type == LEXER.STRING:
+            return True
+        else:
+            error(f"{compare.loc}: type mismatch, expected {typename}, got {compare.type} instead")
+            
+    elif typename == "bool":
+        if compare.type == PARSER.BOOL:
+            return True
+        else:
+            error(f"{compare.loc}: type mismatch, expected {typename}, got {compare.type} instead")
+            
+    elif typename == "void":
+        todo("check_type", "void")
+
+    elif typename == "ptr":
+        todo("check_type", "ptr")
+        
+    elif typename == "func":
+        if compare.type == PARSER.FUNCDECL:
+            
+            if len(t.data[1]) < len(compare.data[0]):
+                error(f"{compare.loc}: too many arguments, function expects {len(t.data[1])} argument(s) but got {len(compare.data[0])} instead")
+            
+            if len(t.data[2]) > 1:
+                todo("check_type", "function with multiple return values")
+            
+            return True
+            
+        else:
+            error(f"{compare.loc}: type mismatch, expected {typename}, got {compare.type} instead")
+        
+    else:
+        error(f"{t.loc}: unknown type '{typename}'")
+        
+def check_typename(tok: token):
     """ checks if the 'type' token has a valid type name
 
     TODO: custom types
@@ -304,7 +377,7 @@ def check_typename(tok: token) -> bool:
     
     if tok.data[0].data in stypes:
         if len(tok.data) == 1:
-            return True
+            return 
         else:
             error(f"{tok.loc}: type '{tok.data[0].data}' cannot have modifiers")
     
@@ -312,7 +385,7 @@ def check_typename(tok: token) -> bool:
         if len(tok.data) == 2:
             for t in tok.data[1]:
                 check_typename(t)
-            return True
+            return 
         elif len(tok.data) == 3:
             
             if tok.data[0].data == "ptr":
@@ -322,13 +395,12 @@ def check_typename(tok: token) -> bool:
                 check_typename(t)
             for t in tok.data[2]:
                 check_typename(t)
-            return True
+            return 
         else:
-            return True
+            return 
     error(f"{tok.loc}: invalid type '{tok.data[0].data}'")
  
-
-def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[int] = []) -> token:
+def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[int] = []):
     """ verifies the syntax of the program
 
     TODO: finish this
@@ -342,12 +414,9 @@ def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[int] = [
         token: ?
     """    
     
-    #print(symb)
-    
     if ast.type == PARSER.UNIT:
         for tok in ast.data:
             ast = verify(tok, symb, loc)
-        
     
     elif ast.type == PARSER.PREPROC:
         pass
@@ -356,11 +425,9 @@ def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[int] = [
         makeID()
         
         check_typename(ast.data[0])
+        tok = find_tok(ast.data[1], symb, loc)
         
-        todo("verify", "verify vardecl") 
-            # [ ] check if vardecl has valid type
-            # [ ] check if id is valid
-            # [ ] check if id is in scope
+        return       
             
     elif ast.type == PARSER.FUNCDECL:
         makeID()
@@ -370,6 +437,8 @@ def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[int] = [
     elif ast.type == PARSER.VARASSIGN:
         
         temp = find_tok(ast.data[0], symb, loc)
+        
+        check_type(temp.data[2], ast.data[2])
         
         todo("verify", "verify varassign")
             # [x] check if id exists
