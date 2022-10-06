@@ -69,7 +69,7 @@ def analyze64(ast: token, verbose: bool):
     
     todo("analyze64", "analyze")
     
-def makeID() -> int:
+def makeID() -> intl:
     """ makes a unique ID (int) for each variable and function
 
     Args:
@@ -128,7 +128,7 @@ def makeglobalvar(name: str, type: token) -> token:
     
     return out
         
-def make_symboltable(ast: token, loc: list[int] = []) -> tuple[list[token], list[token]]:
+def make_symboltable(ast: token, loc: list[intl] = []) -> tuple[list[token], list[token]]:
     """ returns a list of all variables and functions in the program
 
     TODO: determine a more efficient way to do this
@@ -222,7 +222,7 @@ def make_symboltable(ast: token, loc: list[int] = []) -> tuple[list[token], list
     
     return functions, variables
 
-def find_tok(tok: token, symb: tuple[list[token], list[token]], loc: list[int]) -> token:
+def find_tok(tok: token, symb: tuple[list[token], list[token]], loc: list[intl]) -> token:
     """ 
         returns a token from the symbol table whose id matches 'tok' and
         ensures the token has no duplicates + exists in the current scope
@@ -263,7 +263,7 @@ def find_tok(tok: token, symb: tuple[list[token], list[token]], loc: list[int]) 
     
     return out
 
-def check_scope(tok: token, loc: list[int]) -> bool:
+def check_scope(tok: token, loc: list[intl]) -> bool:
     """ verifies that the token is in the current scope 
 
     Args:
@@ -400,7 +400,7 @@ def check_typename(tok: token):
             return 
     error(f"{tok.loc}: invalid type '{tok.data[0].data}'")
  
-def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[int] = []):
+def verify(ast: token, symb: tuple[list[token], list[token]], loc: list[intl] = []):
     """ verifies the syntax of the program
 
     TODO: finish this

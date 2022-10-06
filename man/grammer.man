@@ -8,9 +8,7 @@ unit:
 
 declaration:
     | vardecl
-    | funcdecl
     | classdecl
-    | preproc
     | assignment
 
 vardecl:
@@ -42,10 +40,6 @@ statement:
 
 classdecl:
     | TODO
-
-preproc:
-    | '#' ID ';'
-    | '#' ID any [ ',' any ] ';'
 
 ifState:
     | 'if' '(' condition ')' [ statement ] 

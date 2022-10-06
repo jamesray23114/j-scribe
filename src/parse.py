@@ -1,7 +1,9 @@
+from cmath import exp
+from email.policy import default
 from src.common import *
 import os
     
-tok: token = None
+tok: token
     
 def parse64(ltokens: list[token], verbose: bool) -> token:    
     """ parses a list of lexer tokens and returns the ast root token
@@ -29,7 +31,7 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
         else:
             tok = None        
     
-    def peek(loc: int) -> token:
+    def peek(loc: intl) -> token:
         """ gets the token at 'loc' from 'ltokens'
         
         Args:
@@ -43,7 +45,7 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
         else: 
             return None
         
-    def accept(type: Enum, data: any = None) -> bool:
+    def accept(typename) -> bool:
         """ checks if the next token is of a certain type and data, and calls 'next' if it is
 
         Args:
@@ -53,17 +55,13 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
         Returns:
             bool: true if the current token matches the type and data
         """             
-        global tok 
-        if tok.type == type:
-            if data is None:
-                next()
-                return True
-            elif tok.data == data:
-                next()
-                return True
+        global tok
+        if isinstance(tok, typename):
+            next()
+            return True
         return False
     
-    def check(type: Enum, data: any = None) -> bool:
+    def check(typename) -> bool:
         """ checks if the next token is of a certain type and data, does not call 'next'
 
         Args:
@@ -73,14 +71,11 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
         Returns:
             bool: true if the current token matches the type and data
         """     
-        if tok.type == type:
-            if data is None:
-                return True
-            elif tok.data == data:
-                return True
+        if isinstance(tok, typename):
+            return True
         return False
     
-    def expect(type: Enum, data: any = None) -> bool:
+    def expect(typename) -> bool:
         """ checks if the next token is of a certain type and data, and calls 'next' if it is, otherwise raises an error
 
         Args:
@@ -91,12 +86,10 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             bool: true if the current token matches the type and data
         """        
         global tok 
-        if accept(type, data):
+        if accept(typename):
             return True
-        if data is None:
-            error(f"{tok.loc}: expected {type}, got {tok.type} instead.")
         else:
-            error(f"{tok.loc}: expected {type} {data}, got {tok.type} {tok.data} instead.")
+            error(f"{tok.loc}: expected {typename} got {type(tok)} instead.")
     
     def makeUnit() -> token:
         """ attemps to make a unit node, the base node for a single file
@@ -117,53 +110,52 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             error: if the tokens do not match the requirements
         """        
         global tok
-        out = token(tok.loc, PARSER.UNIT, None)
-        expect (LEXER.FILE)
+        out = unit(tok.loc, [])
+        expect(filel)
         pstack: list[token] = []
         
         while True:
             if tok is None:
                 return error("parsing error, end of file never reached.")
-            if tok.type == LEXER.EOF:
-                out.data = pstack
+            if check(eof):
                 return out
             
-            temp = None
+            if check(id):
+                current: id = tok
             
-            # variable assignment
-            if check(LEXER.ID) and peek(1) == LEXER.OP and peek(1).data in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
-                temp = makeVarAssign()
-                
-            # variable declaration
-            elif check(LEXER.ID):
-                temp = makeVarDecl()
-                if peek(1) == LEXER.OP and peek(1).data in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
-                    pstack.append(temp)
-                    if temp.data[1] == LEXER.ID:
-                        temp = makeVarAssign()
-                    else:
-                        error(f"{tok.loc}: expected variable name, got {tok.type} {tok.data} instead.")
-                    
-                else:
+                # variable assignment
+                if isinstance(peek(1), op) and peek(1).value in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
+                    tpeek: op = peek(1)
+                    out.value.append(makeVarAssign())
+                        
+                # struct
+                elif current.value == "struct":
                     next()
-                    expect(LEXER.SEMI)
-            # function declaration
-            elif check(LEXER.GROUP, "{") or check(LEXER.GROUP, "["):
-                temp = makeFuncDecl()
+                    out.value.append(makeStructDecl())
+                    
+                # var declaration
+                else:
+                    out.value.append(makeVarDecl())
                 
             # class declaration
             elif False:
-                temp = makeClassDecl()
+                out.value.append(makeClassDecl())
                 
-            # preprocessor
-            elif accept(LEXER.HASH):
-                temp = makePreProc()
-            
             else:
-                error(f"{tok.loc}: unexpected token {tok.type} {tok.data}, expected declaration.")
+                error(f"{tok.loc}: unexpected token {tok}, expected declaration.")
             
-            if temp is not None:
-                pstack.append(temp)
+        
+        
+        
+    def assignstub() -> token:
+        if check(group):
+            current: group = tok
+            if current.value in "[{":
+                return makeFuncDecl()
+        else:
+            ret = makeExpr()
+            expect(semi)
+            return ret
         
     def makeVarDecl() -> token:
         """ attemps to make a variable declaration node
@@ -179,61 +171,66 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
         Returns:
             token: variable declaration node
             error: if the tokens do not match the requirements
-        """        
-        temp = token(tok.loc, PARSER.VARDECL, [makeType()])
-        if check(LEXER.ID):
-            temp.data.append(tok)
+        """
+                
+        loc = tok.loc
+        type = makeType()
+        name = ""
+                
+        if check(id):
+            current: id = tok
+            name = current.value
+            next()
         else:
-            error(f"{tok.loc}: expected variable name, got {tok.type} {tok.data} instead.")
-        return temp
+            error(f"{tok.loc}: expected variable name, got {tok} instead.")
+        
+        if accept(semi):
+            return vardecl(loc, name, type)
+        elif check(op) and tok.value in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
+            next()
+            return vardecl(loc, name, type, assignstub())
+        else:
+            error(f"{tok.loc}: expected ';', got {tok} instead.")
+        
+        
+    
     def makeVarAssign() -> token:
-        temp = token(tok.loc, PARSER.VARASSIGN, [tok])
+        current: id = tok
+        temp = varassign(current.loc, current.value, None, None)
         next()
         
-        temp.data.append(tok.data)
-        if not tok.data in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
+        if not tok.value in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
             error(f"{tok.loc}: expected assignment operator, got {tok.type} {tok.data} instead.")
-        next()
         
-        if check(LEXER.GROUP, "{") or check(LEXER.GROUP, "["):
-            temp.data.append(makeFuncDecl())
-        else:
-            temp.data.append(makeExpr())
-            expect(LEXER.SEMI)
+        current: op = tok 
+        temp.oper = current.value
+        
+        next()
+        temp.value = assignstub()
         
         return temp
     
     def makeClassDecl() -> token:
         todo("parse64", "makeClassDecl")
         
-    def makePreProc() -> token:
-        """ attemps to make a preprocessor node
-
-        TODO: the variability of preprocessor directives makes it difficult to parse them, different directives should be parsed in their own functions
-        TODO: include directives should be parsed and lexed in thier respective stages, not after 
+    def makeStructDecl() -> token:
+        todo("parse64", "makeStructDecl")
         
-        Requires:
-            LEXER.HASH
-            LEXER.ID
-            ...
-            LEXER.SEMI
-
-        Returns:
-            token: preprocessor node
-            error: if the tokens do not match the requirements
-        """       
-         
-        temp = token(tok.loc, PARSER.PREPROC, [ tok ])
-        expect(LEXER.ID)
-        while True:
-            temp.data.append(tok)
+    def funcstub() -> tuple[token, token]:
+        name = None
+        ret = None
+        if check(id):
+            current: id = tok
+            name = current.value
             next()
-            if tok is None:
-                return error(f"parsing error {temp.loc} preprocessor expects semicolon, found none.")
-            if accept(LEXER.SEMI):
-                return temp
-            expect(LEXER.COMMA)
-            
+            if check(op) and tok.value == "=":
+                next()
+                ret = makeExpr()
+        else:
+            error(f"{tok.loc}: expected identifier, got {tok} instead.")
+           
+        return (name, ret)
+           
     def makeFuncDecl() -> token:
         """ attemps to make a function declaration node
 
@@ -254,39 +251,52 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             error: if the tokens do not match the requirements
         """        
         
-        temp = token(tok.loc, PARSER.FUNCDECL, [])
+        temp = funcdecl(tok.loc, None, None, None)
         
         arglist = []
         datlist = []
+        default = []
         
-        if accept(LEXER.GROUP, "["):
-            
-            if check(LEXER.ID):
-                arglist.append(tok.data)
-                next()
-            
-            while not accept(LEXER.GROUP, "]"):
-                if accept(LEXER.EOF):
-                    error(f"{tok.loc}: function definition expects closing bracket, none found.")
-
-                expect(LEXER.COMMA)
+        current: group = tok
+        
+        if current.value == "[":
+            next()
+            if check(id):
+                t = funcstub()
+                arglist.append(t[0])
+                default.append(t[1])
                 
-                if check(LEXER.ID):
-                    arglist.append(tok.data)
-                    next()
-                else:
-                    error(f"{tok.loc}: expected argument name, got {tok.type} {tok.data} instead.")
+            while accept(comma):
+                t = funcstub()
+                arglist.append(t[0])
+                default.append(t[1])
+                
+            if check(group) and tok.value != "]":
+                error(f"{tok.loc}: expected ']', got {tok} instead.")
+                
+            next()
          
-        expect(LEXER.GROUP, "{")
         
-        while not accept(LEXER.GROUP, "}"):
-            if accept(LEXER.EOF):
+        if check(group) and tok.value != "{":
+            error(f"{tok.loc}: expected '" + '{' + f"', got {tok} instead.")
+        
+        next()
+        
+        while True:
+            
+            if check(group):
+                if tok.value == "}":
+                    next()
+                    break
+            
+            if accept(eof):
                 error(f"{temp.loc}: function definition expects closing brace, none found.")
-                
+            
             datlist.append(makeStatement())
             
-        temp.data.append(arglist)
-        temp.data.append(datlist)
+        temp.args = arglist
+        temp.body = datlist
+        temp.dafualts = default
         
         return temp
     
@@ -306,38 +316,33 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             error: a matching statement node could not be made
         """        
         
-        if accept(LEXER.SEMI):
+        if accept(semi):
             return None
-        if accept(LEXER.HASH):
-            return makePreProc()
-        elif check(LEXER.ID) and peek(1) == LEXER.OP and peek(1).data in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
-            return makeVarAssign()
-        elif accept(LEXER.ID, "if"):
-            return makeIfState()
-        elif accept(LEXER.ID, "for"):
-            return makeForState()
-        elif accept(LEXER.ID, "while"):
-            return makeWhileState()
-        elif accept(LEXER.ID, "return"):
-            return makeReturn()
-        elif check(LEXER.ID):
+        
+        elif check(id):
+            current: id = tok
+            if current.value == "if":
+                return makeIfState()
+            if current.value == "while":
+                return makeWhileState()
+            if current.value == "for":
+                return makeForState()
+            if current.value == "return":
+                return makeReturnState()
             
-            if peek(1) == LEXER.ID or (peek(1) == LEXER.OP and peek(1).data == "<"):
-                temp = makeVarDecl()
-                if peek(1) == LEXER.OP and peek(1).data in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
-                    pass
-                else:
-                    next()
-                    expect(LEXER.SEMI)
-                return temp
-                
+            if isinstance(peek(1), op) and peek(1).value in ["=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^="]:
+                return makeVarAssign()
+            if isinstance(peek(1), group) and peek(1).value in "(":
+                return makeExpr()
+            if isinstance(peek(1), id) or isinstance(peek(1), op) and peek(1).value == "<":
+                return makeVarDecl()
             else:
                 temp = makeExpr()
-                expect(LEXER.SEMI)
+                expect(semi)
                 return temp
         else:
             temp = makeExpr()
-            expect(LEXER.SEMI)
+            expect(semi)
             return temp
 
     def makeType() -> token:
@@ -352,45 +357,54 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
         Returns:
             token: type node
             error: if the tokens do not match the requirements
-        """        
-        if check(LEXER.ID):
-            temp = token(tok.loc, PARSER.TYPE, [ tok ])
+        """
+                
+        if check(id):
+            temp = typep(tok.loc, tok.value)
             next()
         else:
-            return None
+            error(f"{tok.loc}: expected type, got {tok} instead.")
         
-        isout = False
         argin  = []
         argout = []
         
-        if (accept(LEXER.OP, "<")):
+        if check(op) and tok.value == "<":
+            next()
             
-            
-            if accept(LEXER.OP, ">"):
+            if check(op) and tok.value == ">":
+                next()
                 return temp
             
             argin.append(makeType())
             
-            while not accept(LEXER.OP, ">"):
-                if accept(LEXER.EOF):
-                    error(f"{temp.loc}: expected closing angle bracket, found none.")
-                if accept(LEXER.OP, "->"):
-                    if isout:
-                        error(f"{tok.loc}: unexpected token \"->\".")
-                    isout = True
-                    argout.append(makeType())
-                else:
-                    expect(LEXER.COMMA)
-                    if isout:
-                        argout.append(makeType())
-                    else:
-                        argin.append(makeType())
+            while accept(comma):
+                argin.append(makeType())
                 
+            if check(op) and tok.value == "->":
+                next()
+                
+                argout.append(makeType())
+                
+                while accept(comma):
+                    argout.append(makeType())
+                    
+                if check(op) and tok.value == ">":
+                    next()
+                else:
+                    error(f"{tok.loc}: type expects '>', got {tok} instead.")
             
-        if argin != []:
-            temp.data.append(argin)
-        if argout != []:
-            temp.data.append(argout)
+            elif check(op) and tok.value == ">":
+                next()
+                
+            else:
+                error(f"{tok.loc}: type expects '>', got {tok} instead.")
+                
+        print(argin)
+                
+        if len(argin) > 0:
+            temp.generics = argin
+        if len(argout) > 0:
+            temp.returns = argout
             
         return temp
     
@@ -404,13 +418,32 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             token: expression node
             error: if an expression node could not be made
         """        
-        if accept(LEXER.ID, "true"):
-            return token(tok.loc, PARSER.BOOL, "true")
-        elif accept(LEXER.ID, "false"):
-            return token(tok.loc, PARSER.BOOL, "false")
+        return makeConditional()
+        
+    def bodystub() -> list[token]:
+        retlist = []
+        
+        if check(group) and tok.value == "{":
+            next()
+            while True:
+                if check(group):
+                    if tok.value == "}":
+                        next()
+                        break
+                
+                if accept(eof):
+                    error(f"{tok.loc}: if statement expects closing brace, none found.")
+                
+                t = makeStatement()
+                if t:
+                    retlist.append(t)
+            
         else:
-            temp = makeConditional()
-            return temp
+            t = makeStatement()
+            if t:
+                retlist.append(t)
+            
+        return retlist
         
     def makeIfState() -> token:
         """ attemps to make an if statement node
@@ -426,73 +459,46 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             token: if statement node
             error: if the tokens do not match the requirements
         """
-        temp = token(tok.loc, PARSER.IF, [])
-        
-        datlist = []
+        temp = ifstate(tok.loc, None, None, None, None)
         eliflist = []
-        elselist = []
         
-        expect(LEXER.GROUP, "(")
-        temp.data.append(makeExpr())
-        expect(LEXER.GROUP, ")")
-        
-        if accept(LEXER.GROUP, "{"):
-            while not accept(LEXER.GROUP, "}"):
-                if accept(LEXER.EOF):
-                    error(f"{tok.loc}: if statement expects closing brace, none found.")
-                t = makeStatement()
-                if t is not None:
-                    datlist.append(t)
+        next()
+        if check(group) and tok.value == "(":
+            next()
+            temp.cond = makeExpr()
         else:
-            t = makeStatement()
-            if t is not None:
-                datlist.append(t)
+            error(f"{tok.loc}: if statement expects '(', got {tok} instead.")
+        if check(group) and tok.value == ")":
+            next()
+        else:
+            error(f"{tok.loc}: if statement expects ')', got {tok} instead.")
         
-        while accept(LEXER.ID, "else"):
+        temp.body = bodystub()
+        
+        while check(id) and tok.value == "else" and isinstance(peek(1), id) and peek(1).value == "if":
+            next()
+            next()
+            temp2 = ifstate(tok.loc, None, None, None, None)
             
-            if accept(LEXER.ID, "if"):
-                
-                temp1 = token(tok.loc, PARSER.IF, [])
-                datlist1 = []
-                
-                expect(LEXER.GROUP, "(")
-                temp1.data.append(makeExpr())
-                expect(LEXER.GROUP, ")")
-                
-                if accept(LEXER.GROUP, "{"):
-                    while not accept(LEXER.GROUP, "}"):
-                        if accept(LEXER.EOF):
-                            error(f"{tok.loc}: if statement expects closing brace, none found.")
-                        t = makeStatement()
-                        if t is not None:
-                            datlist1.append(makeStatement())
-                else:
-                    t = makeStatement()
-                    if t is not None:
-                        datlist1.append(t)
-                
-                temp1.data.append(datlist1)
-                eliflist.append(temp1)
-                
+            if check(group) and tok.value == "(":
+                next()
+                temp2.cond = makeExpr()
             else:
-                if accept(LEXER.GROUP, "{"):
-                    while not accept(LEXER.GROUP, "}"):
-                        if accept(LEXER.EOF):
-                            error(f"{tok.loc}: else statement expects closing brace, none found.")
-                        t = makeStatement()
-                        if t is not None:
-                            elselist.append(t)
-                else:
-                    t = makeStatement()
-                    if t is not None:
-                        elselist.append(t)  
+                error(f"{tok.loc}: if statement expects '(', got {tok} instead.")
+            if check(group) and tok.value == ")":
+                next()
+            else:
+                error(f"{tok.loc}: if statement expects ')', got {tok} instead.")
+            
+            temp2.body = bodystub()
         
-        temp.data.append(datlist)
-        if elselist != []:
-            temp.data.append(eliflist)
-            temp.data.append(elselist)
-        elif eliflist != []:
-            temp.data.append(eliflist)
+            eliflist.append(temp2)
+        
+        if check(id) and tok.value == "else":
+            next()
+            temp.elsebody = bodystub()
+        
+        temp.ifelse = eliflist
         
         return temp
     
@@ -508,30 +514,27 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
         Returns:
             token: while statement node
         """        
-        temp = token(tok.loc, PARSER.WHILE, [])
+        temp = whilestate(tok.loc, None, None)
+        next()
         
-        datlist = []
-        
-        expect(LEXER.GROUP, "(")
-        temp.data.append(makeExpr())
-        expect(LEXER.GROUP, ")")
-        
-        if accept(LEXER.GROUP, "{"):
-            while not accept(LEXER.GROUP, "}"):
-                if accept(LEXER.EOF):
-                    error(f"{tok.loc}: while statement expects closing brace, none found.")
-                datlist.append(makeStatement())
+        if check(group) and tok.value == "(":
+            next()
+            temp.cond = makeExpr()
         else:
-            datlist.append(makeStatement())
+            error(f"{tok.loc}: if statement expects '(', got {tok} instead.")
+        if check(group) and tok.value == ")":
+            next()
+        else:
+            error(f"{tok.loc}: if statement expects ')', got {tok} instead.")
         
-        temp.data.append(datlist)
+        temp.body = bodystub()
         
         return temp
     
     def makeForState() -> token:
         todo("parse64", "makeFor")
     
-    def makeReturn() -> token:
+    def makeReturnState() -> token:
         """ attemps to make a return statement node
 
         TODO: multiple return values
@@ -543,127 +546,149 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
     
         Returns:
             token: return statement node
-        """        
-        temp = token(tok.loc, PARSER.RETURN, None)
-        if accept(LEXER.SEMI):
+        """
+        
+        temp = returnstate(tok.loc, None)       
+        next()
+        if accept(semi):
             return temp
-        temp.data = makeExpr()
-        expect(LEXER.SEMI)
+        
+        temp.value = makeExpr()
+        expect(semi)
         return temp
         
     def makeConditional() -> token:
         
-        temp = makeLogic()
+        temp = makeBitwise()
         
-        while check(LEXER.OP, "==") or check(LEXER.OP, "!=") or check(LEXER.OP, "<") or check(LEXER.OP, ">") or check(LEXER.OP, "<=") or check(LEXER.OP, ">=") or check(LEXER.ID, "||") or check(LEXER.ID, "&&"):
-            op = tok.data
+        while check(op) and tok.value in ["==", "!=", "<", ">", "<=", ">=", "||", "&&"]:
+            oper = tok.value
             next()
-            temp = token(tok.loc, PARSER.CONDITION, [op, temp, makeLogic()])
+            temp = expr(tok.loc, oper, temp, makeBitwise())
         
         return temp      
     
-    def makeLogic() -> token:
+    def makeBitwise() -> token:
         temp = makeSummand()
-        
-        while check(LEXER.OP, "&") or check(LEXER.OP, "|") or check(LEXER.OP, "^") or check(LEXER.OP, "<") or check(LEXER.OP, ">"):
-            if check(LEXER.OP, "<") and peek(1) == LEXER.OP and peek(1).data == "<":
+            
+        while check(op) and tok.value in ["&", "|", "^", "<", ">"]:
+            if check(op) and tok.value == "<" and isinstance(peek(1), op) and peek(1).value == "<":
                 next()
                 next()
-                temp = token(tok.loc, PARSER.EXPR, ["<<", temp, makeSummand()])
-            elif check(LEXER.OP, ">") and peek(1) == LEXER.OP and peek(1).data == ">":
+                temp = expr(tok.loc, "<<", temp, makeSummand())
+            elif check(op) and tok.value == ">" and isinstance(peek(1), op) and peek(1).value == ">":
                 next()
                 next()
-                temp = token(tok.loc, PARSER.EXPR, [">>", temp, makeSummand()])
-            elif check(LEXER.OP, "<") or check(LEXER.OP, ">"):
+                temp = expr(tok.loc, ">>", temp, makeSummand())
+            elif check(op) and tok.value in ["<", ">"]:
                 break
-            else:    
-                op = tok.data
+            else:
+                oper = tok.value
                 next()
-                temp = token(temp.loc, PARSER.EXPR, [op, temp, makeSummand()])
+                temp = expr(tok.loc, oper, temp, makeSummand())
             
         return temp
     
     def makeSummand() -> token:
         temp = makeFactor()
-        while check(LEXER.OP, "+") or check(LEXER.OP, "-"):
-            op = tok.data
+        while check(op) and tok.value in ["+", "-"]:
+            oper = tok.value
             next()
-            temp = token(temp.loc, PARSER.EXPR, [op, temp, makeFactor()])
+            temp = expr(tok.loc, oper, temp, makeFactor())
         return temp    
      
     def makeFactor() -> token:
         temp = makeUnary()
-        while check(LEXER.OP, "*") or check(LEXER.OP, "/") or check(LEXER.OP, "%"):
-            op = tok.data
+        while check(op) and tok.value in ["*", "/", "%"]:
+            oper = tok.value
             next()
-            temp = token(temp.loc, PARSER.EXPR, [op, temp, makeUnary()])
+            temp = expr(tok.loc, oper, temp, makeUnary())
         return temp   
          
     def makeUnary() -> token:
-        if accept(LEXER.OP, "!"):
-            temp = makeValue()
-            return token(tok.loc, PARSER.EXPR, ["!", temp])
-        elif accept(LEXER.OP, "*"):
-            temp = makeValue()
-            return token(tok.loc, PARSER.EXPR, ["u*", temp])
-        elif accept(LEXER.OP, "&"):
-            temp = makeValue()
-            return token(tok.loc, PARSER.EXPR, ["u&", temp])
-        elif accept(LEXER.OP, "-"):
-            temp = makeValue()
-            return token(tok.loc, PARSER.EXPR, ["u-", temp])
-        elif accept(LEXER.OP, "~"):
-            temp = makeValue()
-            return token(tok.loc, PARSER.EXPR, ["~", temp])
-        elif accept(LEXER.OP, "++"):
-            temp = makeValue()
-            return token(tok.loc, PARSER.EXPR, ["l++", temp])
-        elif accept(LEXER.OP, "--"):
-            temp = makeValue()
-            return token(tok.loc, PARSER.EXPR, ["l--", temp])
+        
+        if check(op) and tok.value in ["+", "-", "~", "!", "*", "&", "++", "--"]:
+            oper = tok.value
+            if oper in ["++", "--"]:
+                oper = "l" + oper
+            if oper in ["*", "&", "-", "+"]:
+                oper = "u" + oper
+            next()
+            return expr(tok.loc, oper, makeUnary(), None)
         else:
             temp = makeValue()
-            if accept(LEXER.OP, "++"):
-                return token(tok.loc, PARSER.EXPR, ["r++", temp])
-            elif accept(LEXER.OP, "--"):
-                return token(tok.loc, PARSER.EXPR, ["r--", temp])
+            
+            if check(op) and tok.value in ["++", "--"]:
+                oper = "r" + tok.value
+                next()
+                return expr(tok.loc, oper, temp, None)
             else:
                 return temp       
                
     def makeValue() -> token:
         temp = tok
-        if accept(LEXER.GROUP, "("):
+        if check(group) and tok.value == "(":
             temp = makeExpr()
-            expect(LEXER.GROUP, ")")
+            if check(group) and tok.value == ")":
+                next()
+            else:
+                error(f"{tok.loc}: expected ')', got {tok} instead.")
             return temp
-        elif accept(LEXER.INT):
+        elif accept(intl):
             return temp
-        elif accept(LEXER.FLOAT):
+        elif accept(floatl):
             return temp
-        elif accept(LEXER.STRING):
+        elif accept(stringl):
             return temp
-        elif accept(LEXER.CHAR):
+        elif accept(charl):
             return temp
-        elif accept(LEXER.ID):
-            if accept(LEXER.GROUP, "("):
-                temp = token(tok.loc, PARSER.FUNCCALL, [temp.data])
-                if not accept(LEXER.GROUP, ")"):
-                    temp.data.append(makeExpr())
-                    while accept(LEXER.COMMA):
-                        temp.data.append(makeExpr())
-                    expect(LEXER.GROUP, ")")
-                return temp
-            elif accept(LEXER.GROUP, "["):
-                temp = token(tok.loc, PARSER.INDEX, [temp.data, makeExpr()])
-                expect(LEXER.GROUP, "]")
-                return temp
-            elif accept(LEXER.OP, "."):
-                temp = token(tok.loc, PARSER.MEMBER, [temp.data, makeValue()])
-                return temp
+        elif accept(booll):
+            return temp
+        elif accept(id):
+            
+            if check(group) and tok.value == "(":
+                temp = funccall(tok.loc, temp, None)
+                next()
+                
+                if check(group) and tok.value == ")":
+                    next()
+                    return temp
+                else:
+                    arglist = []
+                    
+                    while True:
+                        arglist.append(makeExpr())
+                        if accept(comma):
+                            continue
+                        elif check(group) and tok.value == ")":
+                            next()
+                            break
+                        else:
+                            error(f"{tok.loc}: expected ')' or ',', got {tok} instead.")
+                    
+                    temp.args = arglist
+                    return temp
+                
+            elif check(op) and tok.value == "[":
+                next()
+                temp = index(tok.loc, temp, makeExpr())
+                if check(op) and tok.value == "]":
+                    next()
+                    return temp
+                else:
+                    error(f"{tok.loc}: expected ']', got {tok} instead.")
+            elif check(op) and tok.value == ".":
+                next()
+                if check(id):
+                    temp = member(tok.loc, temp, tok)
+                    next()
+                    return temp
+                else:
+                    error(f"{tok.loc}: expected identifier, got {tok} instead.")
             else:
                 return temp
         else:
-            error(f"{tok.loc}: expected value, got {tok.type} instead.")
+            error(f"{tok.loc}: expected value, got {tok} instead.")
             
     next()
     out = makeUnit()
@@ -678,282 +703,9 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             os.mkdir(".test/parse")
             print(" -> [PARSER]: created directory '.test/parse'")
         
-        t = printAst(out)
+        t = str(out)
         with open(".test/parse/" + out.loc.file.split("/")[-1], "w") as f:
-            f.write("{\n")
             f.write(t)
-            f.write("}")
         print(" -> [PARSER]: AST written to " + ".test/parse/" + out.loc.file.split("/")[-1])
-            
-    return out
-
-def printAst(ast: token, depth: int = 1) -> str:
-    """ returns a string representation of the AST
-
-    TODO: completely redo this function
-    TODO: dont use json, use a custom format. json makes it hard to read because of indentation
-    TODO: determine if another format would be better, or if plain text would be better
-    TODO: less repetition
-
-    Args:
-        ast (token): the root node of the AST
-        depth (int, optional): the amount of tabs to print, used internally. Defaults to 1.
-
-    Returns:
-        str: the string representation of the AST
-    """    
-    
-    out = ""
-    
-        
-    if type(ast) is token:
-        
-        
-        if ast.type == LEXER.INT:
-            out += str(ast.data) 
-        elif ast.type == LEXER.FLOAT:
-            out += str(ast.data)    
-        elif ast.type == LEXER.STRING or ast.type == LEXER.ID:
-            out += "\"" + ast.data + "\""
-        elif ast.type == LEXER.CHAR:
-            out += "\'" + ast.data + "\'"
-        elif ast.type == PARSER.BOOL:
-            out += str(ast.data).lower()
-
-        elif ast.type == PARSER.TYPE:
-            out += "{\n"
-            out += "\t" * (depth + 1)
-            out += "\"name\": " + printAst(ast.data[0], depth + 2) + "\n"
-            out += "\t" * (depth)
-            out += "}"
-            
-
-        elif ast.type == PARSER.EXPR:
-            out += "\t" * depth
-            out += "\"expression\": {\n"
-            out += "\t" * (depth + 1)
-            out += "\"location\": \"" + str(ast.loc) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"operator\": \"" + str(ast.data[0]) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"left\": "
-            
-            if  ast.data[1].type == PARSER.EXPR:
-                out += "{\n"
-                out += printAst(ast.data[1], depth + 2)
-                out += "\t" * (depth + 1)
-                out += "}"
-            else:
-                out += printAst(ast.data[1], depth + 2)
-            
-            
-            if len(ast.data) > 2:
-            
-                out += ",\n"
-                out += "\t" * (depth + 1)
-                out += "\"right\": "
-                if ast.data[2].type == PARSER.EXPR:
-                    out += "{\n"
-                    out += printAst(ast.data[2], depth + 2)
-                    out += "\t" * (depth + 1)
-                    out += "}"
-                else:
-                    out += printAst(ast.data[2], depth + 2)
-            
-            out += "\n"
-            out += "\t" * depth
-            out += "}"
-        elif ast.type == PARSER.CONDITION:
-            out += "\t" * depth
-            out += "\"condition\": {\n"
-            out += "\t" * (depth + 1)
-            out += "\"location\": \"" + str(ast.loc) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"operator\": \"" + str(ast.data[0]) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"left\": "
-            
-            if  ast.data[1].type == PARSER.EXPR:
-                out += "{\n"
-                out += printAst(ast.data[1], depth + 2)
-                out += "\t" * (depth + 1)
-                out += "}"
-            else:
-                out += printAst(ast.data[1], depth + 2)
-            
-            out += ",\n"
-            out += "\t" * (depth + 1)
-            out += "\"right\": "
-            
-            if ast.data[2].type == PARSER.EXPR:
-                out += "{\n"
-                out += printAst(ast.data[2], depth + 2)
-                out += "\t" * (depth + 1)
-                out += "}"
-            else:
-                out += printAst(ast.data[2], depth + 2)
-            
-            out += "\n"
-            out += "\t" * depth
-            out += "}\n"
-            
-        elif ast.type == PARSER.UNIT:
-            out += "\t" * depth 
-            out += "\"unit\": {\n"
-            out += "\t" * (depth + 1) 
-            out += "\"location\": \"" + str(ast.loc) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"program\": [\n"
-            out += printAst(ast.data, depth + 2)
-            out += "\t" * (depth + 1) 
-            out += "]\n"
-            out += "\t" * depth 
-            out += "}\n"                 
-        elif ast.type == PARSER.PREPROC:
-            out += "\t" * depth 
-            out += "\"preproc\": {\n"
-            out += "\t" * (depth + 1) 
-            out += "\"location\": \" " + str(ast.loc) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"directive\":" + printAst(ast.data[0]) + ",\n"
-            out += "\t" * (depth + 1)
-            out += "\"args\": [\n"
-            
-            i = 1
-            while i < len(ast.data):
-                out += "\t" * (depth + 2)
-                out += printAst(ast.data[i], depth + 2)
-                if i + 1 < len(ast.data):
-                    out += ",\n"
-                else:
-                    out += "\n"
-                i += 1
-                
-            
-            out += "\t" * (depth + 1) 
-            out += "]\n"
-            out += "\t" * depth 
-            out += "}"     
-        elif ast.type == PARSER.VARDECL:
-            out += "\t" * depth 
-            out += "\"vardecl\": {\n"
-            out += "\t" * (depth + 1) 
-            out += "\"location\": \"" + str(ast.loc) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"type\": " + printAst(ast.data[0], depth + 1) + ",\n"
-            out += "\t" * (depth + 1)
-            out += "\"name\": " + printAst(ast.data[1], depth + 1) + "\n"
-            out += "\t" * depth 
-            out += "}"
-        elif ast.type == PARSER.FUNCDECL:
-            out += "\t" * depth
-            out += "\"funcdecl\": {\n"
-            out += "\t" * (depth + 1)
-            out += "\"location\": \"" + str(ast.loc) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"args\": [\n"
-            
-            i = 0
-            while i < len(ast.data[0]):
-                out += "\t" * (depth + 2)
-                out += "\"" + ast.data[0][i] + "\""
-                if i + 1 < len(ast.data[0]):
-                    out += ",\n"
-                else:
-                    out += "\n"
-                i += 1
-                
-            out += "\t" * (depth + 1)
-            out += "],\n"
-            out += "\t" * (depth + 1)
-            out += "\"statements\": [\n"
-            out += printAst(ast.data[1], depth + 2)
-            out += "\t" * (depth + 1)
-            out += "]\n"
-            out += "\t" * depth
-            out += "}"
-        elif ast.type == PARSER.VARASSIGN:
-            out += "\t" * depth
-            out += "\"varassign\": {\n"
-            out += "\t" * (depth + 1)
-            out += "\"location\": \"" + str(ast.loc) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"name\": " + printAst(ast.data[0], depth + 1) + ",\n"
-            out += "\t" * (depth + 1)
-            out += "\"operator\": \"" + str(ast.data[1]) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"value\": "
-            
-            if type(ast.data[2]) == token:
-                out += "{\n"
-                out += printAst(ast.data[2], depth + 2)
-                out += "\n"
-                out += "\t" * (depth + 1)
-                out += "}"
-            else:    
-                out += printAst(ast.data[2], depth + 1)
-            out += "\n"
-            out += "\t" * depth
-            out += "}"
-        elif ast.type == PARSER.FUNCCALL:
-            out += "\t" * depth
-            out += "\"funccall\": {\n"
-            out += "\t" * (depth + 1)
-            out += "\"location\": \"" + str(ast.loc) + "\",\n"
-            out += "\t" * (depth + 1)
-            out += "\"name\": " + printAst(ast.data[0], depth + 1) + ",\n"
-            out += "\t" * (depth + 1)
-            out += "\"args\": [\n"
-            
-            i = 1
-            while i < len(ast.data):
-                out += "\t" * (depth + 2)
-                if ast.data[i].type == PARSER.EXPR:
-                    out += "{\n"
-                    out += printAst(ast.data[i], depth + 3)
-                    out += "\t" * (depth + 2)
-                    out += "}"
-                else:
-                    out += printAst(ast.data[i], depth + 2)
-                if i + 1 < len(ast.data):
-                    out += ",\n"
-                else:
-                    out += "\n"
-                i += 1
-                
-            out += "\t" * (depth + 1)
-            out += "]\n"
-            out += "\t" * depth
-            out += "}"
-             
-                
-        else:
-            out += "\t" * depth
-            out += "\"" + str(ast.type) + "\": { \n"
-            out += "\t" * (depth + 1)
-            out += "\"location\": \"" + str(ast.loc) + "\"\n"
-            out += "\t" * depth
-            out += "}"
-            
-            
-    elif type(ast) is list:
-        for i in ast:
-            out += "\t" * depth
-            out += "{\n"
-            out += printAst(i, depth + 1)
-            out += "\n"
-            out += "\t" * depth
-            out += "},\n"
-            
-        out = out[:-2]
-        out += "\n"
-            
-    elif type(ast) is str:
-        out += "\t" * depth
-        out += "\"" + ast + "\""
-        
-    elif type(ast) is int:
-        out += "\t" * depth
-        out += str(ast)
             
     return out
