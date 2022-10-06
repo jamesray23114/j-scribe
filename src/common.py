@@ -7,7 +7,6 @@ class LEXER(Enum):
     STRING  = auto()
     ID      = auto()
     
-    HASH    = auto()
     OP      = auto()   
     GROUP   = auto()
     
@@ -19,8 +18,6 @@ class LEXER(Enum):
     SPACE   = auto()
     
 class PARSER(Enum):
-    FILE        = auto()
-    
     UNIT        = auto()
     PROGRAM     = auto()
     
@@ -66,22 +63,151 @@ class location:
         return f"{self.file}:{self.x}:{self.y}"
 
 class token:
-    def __init__(self, loc: location, type: Enum, data: any) -> None:
+    def __init__(self, loc: location) -> None:
         self.loc = loc
-        self.type = type
-        self.data = data
         
-    def __eq__(self, other) -> bool:
-        if other is token:
-            return self.type == other.type # data and location are ignored
-        else:
-            return self.type == other
+class lexer:
+    pass
+    
+class scribe:
+    pass
+
+class parser:
+    pass
+
+class analysis:
+    pass
+
+class compiler:
+    pass
+
+class interpreter:
+    pass
+
+class runtime:
+    pass
+                  
+# lexer token types:
+
+class int(token):
+    def __init__(self, loc: location, data: int) -> None:
+        super().__init__(loc)
+        self.value = data
         
-    def __repr__(self) -> str:
-        if self.data is None:
-            return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type} \n"
-        else:
-            return f"{self.loc}:" + allign(self.loc, 27) + f"{self.type}" + allign(self.type, 12) + f" {self.data} \n"
+    def __str__(self) -> str:
+        return f"int: {self.value}"
+    
+class float(token):
+    def __init__(self, loc: location, data: float) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+    def __str__(self) -> str:
+        return f"float: {self.value}"
+        
+class char(token):
+    def __init__(self, loc: location, data: str) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+    def __str__(self) -> str:
+        return f"char: {self.value}"
+        
+class string(token):
+    def __init__(self, loc: location, data: str) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+    def __str__(self) -> str:
+        return f"string: {self.value}"
+        
+class id(token):
+    def __init__(self, loc: location, data: str) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+    def __str__(self) -> str:
+        return f"ident: {self.value}"
+
+class op(token):
+    def __init__(self, loc: location, data: str) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+    def __str__(self) -> str:
+        return f"operator: {self.value}"
+    
+class group(token):
+    def __init__(self, loc: location, data: str) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+    def __str__(self) -> str:
+        return f"group: {self.value}"
+    
+class comma(token):
+    def __init__(self, loc: location) -> None:
+        super().__init__(loc)
+        
+    def __str__(self) -> str:
+        return f"comma"
+    
+class semi(token):
+    def __init__(self, loc: location) -> None:
+        super().__init__(loc)
+        
+    def __str__(self) -> str:
+        return f"semi"
+    
+class file(token):
+    def __init__(self, loc: location) -> None:
+        super().__init__(loc)
+        
+    def __str__(self) -> str:
+        return f"file: {self.loc.file}"
+
+class eof(token):
+    def __init__(self, loc: location) -> None:
+        super().__init__(loc)
+        
+    def __str__(self) -> str:
+        return f"eof: {self.loc.file}"
+    
+# parser token types:
+class unit(token):
+    def __init__(self, loc: location, data: list[token]) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+    def __str__(self) -> str:
+        out = "unit: {\n"
+        out += f"\t location: {self.loc}"
+        out += "\t data: {\n"
+        out += "\t\t" + "\n\t\t".join([str(x) for x in self.value])
+        out += "\t }\n" 
+        
+        return out
+    
+class program(token):
+    def __init__(self, loc: location, data: list[unit]) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+    def __str__(self) -> str:
+        out = "program: {\n"
+        out += f"\t location: {self.loc}"
+        out += "\t data: {\n"
+        out += "\t\t" + "\n\t\t".join([str(x) for x in self.value])
+        out += "\t }\n" 
+        
+        return out
+    
+class expr(token):
+    def __init__(self, loc: location, ) -> None:
+        super().__init__(loc)
+        self.value = data
+        
+        return out
     
 def allign(text: any, width: int) -> str:
     """ returns a string with 'width' spaces after 'text'
@@ -141,25 +267,7 @@ def info(msg: str):
     """
     print("[INFO]: ", end="")
     print(msg)
-    
-def printTokArray(tokens: list[token], prefix: str = "") -> str:
-    """ returns a string representation of a list of tokens
-    
-    NEARING DEPRECATION: waiting for replacement method   
-
-    Args:
-        tokens (list[token]): list of tokens to print
-        prefix (str, optional): prefix to print before each token. Defaults to "".
-
-
-    Returns:
-        str: string representation of the list of tokens
-    """
-    out = ""
-    for token in tokens:
-        out += prefix + str(token)
-    return out
-        
+         
 def usage():
     """ prints the usage of the program and exits
     """
