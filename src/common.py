@@ -122,8 +122,8 @@ class unit(token):
         out = "unit: {\n"
         out += f"location: {self.loc}\n"
         out += "body: [\n"
-        out += "\t" + "\n\t".join([str(x) for x in self.value])
-        out += " ]\n"
+        out += "\n".join([str(x) for x in self.value])
+        out += "\n]\n"
         out += "}"
         
         return out
@@ -137,8 +137,8 @@ class program(token):
         out = "program: {\n"
         out += f" location: {self.loc}"
         out += " body: [\n"
-        out += "\t" + "\n\t".join([str(x) for x in self.value])
-        out += " ]\n"
+        out += "\n".join([str(x) for x in self.value])
+        out += "\n]\n"
         out += "}"
         
         return out
@@ -209,14 +209,14 @@ class funcdecl(token):
         out += f"location: {self.loc}\n"
         out += f"args: ["
         if self.args:
-            out += "\n\t" + "\n\t".join([str(x) for x in self.args]) + "\n"
+            out += "\n" + "\n".join([str(x) for x in self.args]) + "\n"
         out += "]\n"
         out += f"defaults: ["
         if self.dafualts:
-            out += "\n\t" + "\n\t".join([str(x) for x in self.dafualts]) + "\n"
+            out += "\n" + "\n".join([str(x) for x in self.dafualts]) + "\n"
         out += "]\n"
         out += f"body: [\n"
-        out += "\t" + "\n\t".join([str(x) for x in self.body])
+        out += "\n".join([str(x) for x in self.body])
         out += "\n]\n"
         out += "}"
         return out
@@ -233,7 +233,7 @@ class structdecl(token):
         out += f"name: {self.name}\n"
         out += f"types: ["
         if self.types:
-            out += "\n\t" + "\n\t".join([str(x) for x in self.types]) + "\n"
+            out += "\n" + "\n".join([str(x) for x in self.types]) + "\n"
         out += "\n]\n"
         out += "}"
         return out
@@ -269,7 +269,7 @@ class funccall(token):
         out += f"name: {self.name}\n"
         out += f"args: ["
         if self.args:
-            out += "\n\t" + "\n\t".join([str(x) for x in self.args]) + "\n"
+            out += "\n" + "\n".join([str(x) for x in self.args]) + "\n"
         out += "]\n"
         out += "}"
         return out
@@ -289,15 +289,15 @@ class ifstate(token):
         out += f"cond: {self.cond}\n"
         out += f"body: ["
         if self.body:
-            out += "\n\t" + "\n\t".join([str(x) for x in self.body]) + "\n"
+            out += "\n" + "\n".join([str(x) for x in self.body]) + "\n"
         out += "]\n"
         out += f"ifelse: ["
         if self.ifelse:
-            out += "\n\t" + "\n\t".join([str(x) for x in self.ifelse]) + "\n"
+            out += "\n" + "\n".join([str(x) for x in self.ifelse]) + "\n"
         out += "]\n"
         out += f"elsebody: ["
         if self.elsebody:
-            out += "\n\t" + "\n\t".join([str(x) for x in self.elsebody]) + "\n"
+            out += "\n" + "\n".join([str(x) for x in self.elsebody]) + "\n"
         out += "]\n"
         out += "}"
         return out
@@ -314,7 +314,7 @@ class whilestate(token):
         out += f"cond: {self.cond}\n"
         out += f"body: ["
         if self.body:
-            out += "\n\t" + "\n\t".join([str(x) for x in self.body]) + "\n"
+            out += "\n" + "\n".join([str(x) for x in self.body]) + "\n"
         out += "]\n"
         out += "}"
         return out
@@ -360,6 +360,51 @@ class member(token):
         out += "}"
         return out
     
+# endregion
+   
+# region analysis token types:
+
+class function(token):
+    def __init__(self, loc: location, scope: list[int], id: int, args: list[id], defaults: list[token]) -> None:
+        super().__init__(loc)
+        self.scope = scope
+        self.id = id
+        self.args = args
+        self.defaults = defaults
+    
+    def __str__(self) -> str:
+        out = "function: {\n"
+        out += f"location: {self.loc}\n"
+        out += f"scope: {self.scope}\n"
+        out += f"id: {self.id}\n"
+        out += f"args: ["
+        if self.args:
+            out += "\n" + "\n".join([str(x) for x in self.args]) + "\n"
+        out += "]\n"
+        out += f"defaults: ["
+        if self.defaults:
+            out += "\n" + "\n".join([str(x) for x in self.defaults]) + "\n"
+        out += "]\n"
+        out += "}"
+        return out
+
+class variable(token):
+    
+    def __init__(self, loc: location, scope: list[int], name: str, type: type) -> None:
+        super().__init__(loc)
+        self.scope = scope
+        self.name = name
+        self.type = type
+    
+    def __str__(self) -> str:
+        out = "variable: {\n"
+        out += f"location: {self.loc}\n"
+        out += f"scope: {self.scope}\n"
+        out += f"name: {self.name}\n"
+        out += f"type: {self.type}\n"
+        out += "}"
+        return out
+
 # endregion
    
 def allign(text: any, width: int) -> str:

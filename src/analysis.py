@@ -99,11 +99,11 @@ def makeglobaltype(type: str, generics = [], returns = []) -> token:
     glb = location("global", 0, 0)
     
     if returns != []:
-        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, type), generics, returns])
+        return typep(glb, [id(glb, type)], generics, returns)
     elif generics != [] and returns == []:
-        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, type), generics])
+        return typep(glb, [id(glb, type)], generics)
     else:
-        return token(glb, PARSER.TYPE, [token(glb, LEXER.ID, type)])
+        return typep(glb, [id(glb, type)])
     
 def makeglobalvar(name: str, type: token) -> token:
     """ makes a global variable to add to the symbol table

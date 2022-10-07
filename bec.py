@@ -50,6 +50,7 @@ def main():
             
             curtime = time.time_ns()
             print("[INFO]: starting analysis")
+            todo("anl", "anl")
             #atokarr = anl.analyze64(ast, cverbose)
             print(f"[INFO]: analysis finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
