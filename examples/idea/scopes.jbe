@@ -1,0 +1,87 @@
+// each scope can only contain a certian amount of sub scopes depending on the scope level
+// at scope level 12, scopes can no longer be nested
+// level: 1       -> 2    -> 3   -> 4  -> 5  -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12
+// bits:  20      -> 10   -> 8   -> 4  -> 4  -> 2 -> 2 -> 2 -> 2 -> 2  -> 2  -> 2 
+// count: 1048575 -> 1023 -> 255 -> 15 -> 15 -> 3 -> 3 -> 3 -> 3 -> 3  -> 3  -> 3
+
+// this is done to allow for scopes to be stored in a single 64 bit integer
+// note the numbers above can be changed to allow for more scopes to be nested, or to allow more sub scopes per scope
+
+// scopes are printed in the following format
+// l1:l2:l3:l4:l5:l6:l7:l8:l9:l10:l11:l12 where l1 is the scope level 1, l2 is the scope level 2, etc
+// if the scope level is 0, it is not printed
+
+// scope 0      = 0
+// scope 1      = 1
+// scope 1:1    = 1 + 2^20 * 1 = 1048577
+// scope 1:2    = 1 + 2^20 * 2 = 2097153
+// scope 2:2    = 2 + 2^20 * 2 = 2097154
+// scope 1:1:1  = 1 + 2^20 * 1 + 2^30 * 1 = 1074790401 
+// scope 2:1:1  = 2 + 2^20 * 1 + 2^30 * 1 = 1074790402
+// scope 2:2:1  = 2 + 2^20 * 2 + 2^30 * 1 = 1075838978
+
+// scope zero is the 'pure' global scope which contains all global variables
+// all predefined variables and functions are stored in the global scope
+// scope zero does not contain any sub scopes
+// all other scopes cannot use a zero in their scope path, as that would cause ambiguity
+// e.g. scope 1:0 and scope 1:0:0 would both look like scope 1:0
+
+// note when adding a new scope, the scope id returns to 1
+// e.g:
+
+testa = {               // scope 1
+    if(true)            // scope 1:1
+        if (true)       // scope 1:1:1
+            ;
+        else            // scope 1:1:2
+            ;
+    else {              // scope 1:2
+        if (true)       // scope 1:2:1
+            ;
+        else            // scope 1:2:2
+            ;
+    }
+
+    if (true)           // scope 1:3
+        ;
+    else                // scope 1:4
+        ;
+}
+
+// adding scopes above the maximum scope level will cause an error
+
+testb = {  // scope 2   
+    if (true)  // scope 2:1   
+        if (true)  // scope 2:1:1      
+            if (true)  // scope 2:1:1:1
+                if (true)  // scope 2:1:1:1:1
+                    if (true)  // scope 2:1:1:1:1:1
+                        if (true)  // scope 2:1:1:1:1:1:1
+                            if (true)  // scope 2:1:1:1:1:1:1:1
+                                if (true)  // scope 2:1:1:1:1:1:1:1:1
+                                    if (true)  // scope 2:1:1:1:1:1:1:1:1:1
+                                        if (true)  // scope 2:1:1:1:1:1:1:1:1:1:1
+                                            if (true)  // scope 2:1:1:1:1:1:1:1:1:1:1:1
+                                                if (true)  // scope error, max scope level reached
+                                                    ;
+}
+
+// same happens when trying to add too many sub scopes to a scope
+
+testc = {  // scope 3
+    if (true)  // scope 3:1
+        if (true)  // scope 3:1:1
+            if (true)  // scope 3:1:1:1
+                if (true)  // scope 3:1:1:1:1
+                {
+                    if(true) // scope 3:1:1:1:1:1
+                        ;
+                    if(true) // scope 3:1:1:1:1:2
+                        ;
+                    if(true) // scope 3:1:1:1:1:3
+                        ;
+                    if(true) // scope error, max sub scopes reached (3) for scope level 6
+                        ;
+                }
+}
+                                

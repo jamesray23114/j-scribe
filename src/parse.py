@@ -8,8 +8,10 @@ tok: token
 def parse64(ltokens: list[token], verbose: bool) -> token:    
     """ parses a list of lexer tokens and returns the ast root token
 
-    TODO: provide more information about what is stored in each tokens data based on the token type (information is stored in man/grammer.man)
     TODO: determine which parser to use, currently using a LL(k) parser, where k is commonly 1 (though not always)
+    TODO: add more lexer token types to help with parsing. (e.g. add a token for '[' and ']' to help with parsing arrays) 
+        : currently using a hacky solution `if check(group) and tok.value == "(":` should be `if check(lparen):` instead
+    TODO: add way to check a token against a list of tokens, e.g. `if check([lparen, lbracket, lbrace]):`
     
     Args:
         ltokens (list[token]): list of lexer tokens
@@ -705,50 +707,10 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             os.mkdir(".test/parse")
             print(" -> [PARSER]: created directory '.test/parse'")
         
-        t = indentParseTree(str(out))
+        t = indentTree(str(out))
         with open(".test/parse/" + out.loc.file.split("/")[-1], "w") as f:
             f.write(t)
         print(" -> [PARSER]: AST written to " + ".test/parse/" + out.loc.file.split("/")[-1])
             
     return out
 
-def indentParseTree(t: str) -> str:
-    """ adds indentation to string representation of parse tree
-
-    TODO: better way to do this, this solution is very hacky
-    
-    Args:
-        t (str): the string to be indented
-
-    Returns:
-        str: the indentated string
-    """
-    
-    out = ""
-    ind = 0
-    
-    nl = False
-    
-    for char in t:
-        if char in ["(", "[", "{"]:
-            out += char
-            ind += 1
-            nl = False
-        elif char in [")", "]", "}"]:
-            ind -= 1
-            out += char
-            
-            # fix indent on current line
-            
-            if nl:
-                i = out.rfind("\t")
-                out = out[:i] + out[i+1:]
-            
-        elif char == "\n":
-            nl = True
-            out += char
-            out += "\t" * ind
-        else:
-            out += char
-            
-    return out

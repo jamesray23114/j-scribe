@@ -1,5 +1,7 @@
-
-
-func main = {
-    print("Hello, World!");
+main = {
+    if (true) 
+        int c = 300;
+    
+    if (true)
+        int d = 400; 
 }

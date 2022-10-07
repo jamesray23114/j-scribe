@@ -79,7 +79,7 @@ class group(token):
         self.value = data
         
     def __str__(self) -> str:
-        return f"group: {self.value}"
+        return f"group '{self.value}'"
     
 class comma(token):
     def __init__(self, loc: location) -> None:
@@ -135,8 +135,8 @@ class program(token):
         
     def __str__(self) -> str:
         out = "program: {\n"
-        out += f" location: {self.loc}"
-        out += " body: [\n"
+        out += f"location: {self.loc}"
+        out += "body: [\n"
         out += "\n".join([str(x) for x in self.value])
         out += "\n]\n"
         out += "}"
@@ -154,7 +154,8 @@ class expr(token):
         out = "expr: {\n"
         out += f"op: {self.op}\n"
         out += f"lhs: {self.lhs}\n"
-        out += f"rhs: {self.rhs}\n"
+        if self.rhs:
+            out += f"rhs: {self.rhs}\n"
         out += "}"
         return out
     
@@ -171,13 +172,22 @@ class typep(token):
         out += f"typename: {self.typename}\n"
         out += f"generics: ["
         if self.generics != None:
-            out += "\n" + "\n".join([ str(x.typename) for x in self.generics]) + "\n"
-            
-        out += " ]\n"
+            for x in self.generics:
+                if x.generics != None:
+                    out += f"\n{x}"
+                else:
+                    out += f"\n{x.typename}"        
+            out += "\n"
+        out += "]\n"
         out += f"returns: ["
         if self.returns != None:
-            out += "\n" + "\n".join([str(x.typename) for x in self.returns]) + "\n"
-        out += " ]\n"
+            for x in self.returns:
+                if x.returns != None:
+                    out += f"\n{x}"
+                else:
+                    out += f"\n{x.typename}"        
+            out += "\n"
+        out += "]\n"
         out += "}"
         return out
     
@@ -191,18 +201,18 @@ class vardecl(token):
     def __str__(self) -> str:
         out = "vardecl: {\n"
         out += f"location: {self.loc}\n"
-        out += f"name: {self.name}\n"
-        out += f"type: {self.type}\n"
+        out += f"ident: {self.name}\n"
+        out += f"{self.type}\n"
         out += f"value: {self.value}\n"
         out += "}"
         return out
 
 class funcdecl(token):
-    def __init__(self, loc: location, args: list[id], body: list[token], defualts: list[expr] = None) -> None:
+    def __init__(self, loc: location, args: list[id], body: list[token], defaults: list[expr] = None) -> None:
         super().__init__(loc)
         self.args = args
         self.body = body
-        self.dafualts = defualts
+        self.dafualts = defaults
         
     def __str__(self) -> str:
         out = "funcdecl: {\n"
@@ -230,7 +240,7 @@ class structdecl(token):
     def __str__(self) -> str:
         out = "structdecl: {\n"
         out += f"location: {self.loc}\n"
-        out += f"name: {self.name}\n"
+        out += f"ident: {self.name}\n"
         out += f"types: ["
         if self.types:
             out += "\n" + "\n".join([str(x) for x in self.types]) + "\n"
@@ -251,7 +261,7 @@ class varassign(token):
     def __str__(self) -> str:
         out = "varassign: {\n"
         out += f"location: {self.loc}\n"
-        out += f"name: {self.name}\n"
+        out += f"ident: {self.name}\n"
         out += f"value: {self.oper}\n"
         out += f"value: {self.value}\n"
         out += "}"
@@ -266,7 +276,7 @@ class funccall(token):
     def __str__(self) -> str:
         out = "funccall: {\n"
         out += f"location: {self.loc}\n"
-        out += f"name: {self.name}\n"
+        out += f"ident: {self.name}\n"
         out += f"args: ["
         if self.args:
             out += "\n" + "\n".join([str(x) for x in self.args]) + "\n"
@@ -342,7 +352,7 @@ class index(token):
 
     def __str__(self) -> str:
         out = "index: {\n"
-        out += f"name: {self.name}\n"
+        out += f"ident: {self.name}\n"
         out += f"index: {self.index}\n"
         out += "}"
         return out
@@ -355,7 +365,7 @@ class member(token):
     
     def __str__(self) -> str:
         out = "member: {\n"
-        out += f"name: {self.name}\n"
+        out += f"ident: {self.name}\n"
         out += f"member: {self.member}\n"
         out += "}"
         return out
@@ -400,7 +410,7 @@ class variable(token):
         out = "variable: {\n"
         out += f"location: {self.loc}\n"
         out += f"scope: {self.scope}\n"
-        out += f"name: {self.name}\n"
+        out += f"ident: {self.name}\n"
         out += f"type: {self.type}\n"
         out += "}"
         return out
@@ -481,3 +491,44 @@ def usage():
     print("\t -h,--help             prints this screen")
     print("\t -S outfile            Write asm to file and keep asm")
     exit(0)
+    
+def indentTree(t: str) -> str:
+    """ adds indentation to string representation of parse tree
+
+    TODO: better way to do this, this solution is very hacky
+    
+    Args:
+        t (str): the string to be indented
+
+    Returns:
+        str: the indentated string
+    """
+    
+    out = ""
+    ind = 0
+    
+    nl = False
+    
+    for char in t:
+        if char in ["(", "[", "{"]:
+            out += char
+            ind += 1
+            nl = False
+        elif char in [")", "]", "}"]:
+            ind -= 1
+            out += char
+            
+            # fix indent on current line
+            
+            if nl:
+                i = out.rfind("\t")
+                out = out[:i] + out[i+1:]
+            
+        elif char == "\n":
+            nl = True
+            out += char
+            out += "\t" * ind
+        else:
+            out += char
+            
+    return out

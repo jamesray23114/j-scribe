@@ -1,7 +1,7 @@
 import src.lexer as lex
 import src.parse as par
-#import src.analysis as anl
-#import src.compiler as com
+import src.analysis as anl
+import src.compiler as com
 #import pysrc.generator as gen
 from src.common import *
 from sys import argv
@@ -50,12 +50,11 @@ def main():
             
             curtime = time.time_ns()
             print("[INFO]: starting analysis")
-            todo("anl", "anl")
-            #atokarr = anl.analyze64(ast, cverbose)
+            atokarr = anl.analyze64(ast, cverbose)
             print(f"[INFO]: analysis finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             print("[INFO]: starting compiler")    
-            #ctokarr: list[com.compiler_token] = com.compile64(ltokarr, cverbose)
+            ctokarr: list[com.compiler_token] = com.compile64(ltokarr, cverbose)
             print(f"[INFO]: compiler finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             if outputfile == 0:
