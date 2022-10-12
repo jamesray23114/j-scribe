@@ -1,0 +1,25 @@
+[ ]: language feat
+    [ ]: casts
+    [ ]: structs
+    [ ]: directives
+        [ ]: include
+    [ ]: headers
+    [ ]: modifers
+    [ ]: namespaces
+    [ ]: inline asm
+    [ ]: maps and function overloading
+    [ ]: built in manual in object files + advances error reporting
+    
+
+[ ]: compiler dev
+    [ ]: src/lexer.py
+        [ ]: seperate operators + keywords into seperate tokens
+        [ ]: include directive
+    [ ]: src/parse.py
+        [ ]: seperate operators / keywords into seperate tokens
+    [ ]: src/analysis.py
+    [ ]: src/compiler.py
+    [ ]: src/generator.py
+
+[ ]: library
+    
