@@ -171,18 +171,18 @@ def lex64(file: TextIOWrapper, verbose: bool) -> list[token]:
         
         out = "\n".join([allign(str(x.loc) + ": ", longest + 3) + str(x) for x in tokens])
         
-        if not os.path.exists(".test"):
-            os.mkdir(".test")
-            print(" -> [LEXER]: created .text directory")
+        if not os.path.exists(".out"):
+            os.mkdir(".out")
+            print(" -> [LEXER]: created .out directory")
             
-        if not os.path.exists(".test/lexer"):
-            os.mkdir(".test/lexer")
-            print(" -> [LEXER]: created .text/lexer directory")
+        if not os.path.exists(".out/lexer"):
+            os.mkdir(".out/lexer")
+            print(" -> [LEXER]: created .out/lexer directory")
             
-        with open(".test/lexer/" + tokens[0].loc.file.split("/")[-1], "w") as file:
+        with open(".out/lexer/" + tokens[0].loc.file.split("/")[-1], "w") as file:
             file.write(out)
         
-        print(" -> [LEXER]: wrote tokens to .test/lexer/" + tokens[0].loc.file.split("/")[-1])
+        print(" -> [LEXER]: wrote tokens to .out/lexer/" + tokens[0].loc.file.split("/")[-1])
 
         
     return tokens

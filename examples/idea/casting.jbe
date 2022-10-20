@@ -1,0 +1,12 @@
+
+
+main = {
+
+    float f = 1.0;
+
+    int a1 = (int) f;
+    int a2 = int: f;
+    int a3 = f as int;
+    int a4 = f ? int;
+
+}

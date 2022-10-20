@@ -62,8 +62,6 @@ def main():
             
             curtime = time.time_ns()
             print(f"[INFO]: starting generation")
-            with open(outputfile, "w") as _:
-                pass
             #gen.generate64(ctokarr, outputfile, asmfile)
             print(f"[INFO]: generation finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
 

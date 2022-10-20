@@ -212,7 +212,7 @@ class funcdecl(token):
         super().__init__(loc)
         self.args = args
         self.body = body
-        self.dafualts = defaults
+        self.defaults = defaults
         
     def __str__(self) -> str:
         out = "funcdecl: {\n"
@@ -222,8 +222,8 @@ class funcdecl(token):
             out += "\n" + "\n".join([str(x) for x in self.args]) + "\n"
         out += "]\n"
         out += f"defaults: ["
-        if self.dafualts:
-            out += "\n" + "\n".join([str(x) for x in self.dafualts]) + "\n"
+        if self.defaults:
+            out += "\n" + "\n".join([str(x) for x in self.defaults]) + "\n"
         out += "]\n"
         out += f"body: [\n"
         out += "\n".join([str(x) for x in self.body])
@@ -268,7 +268,7 @@ class varassign(token):
         return out
     
 class funccall(token):
-    def __init__(self, loc: location, name: str, args: list[token]) -> None:
+    def __init__(self, loc: location, name: id, args: list[token]) -> None:
         super().__init__(loc)
         self.name = name
         self.args = args
@@ -347,8 +347,8 @@ class returnstate(token):
 class index(token):
     def __init__(self, loc: location, name: token, index: expr) -> None:
         super().__init__(loc)
-        self.name
-        self.index = intl
+        self.name = name
+        self.index = index
 
     def __str__(self) -> str:
         out = "index: {\n"
@@ -400,7 +400,7 @@ class function(token):
 
 class variable(token):
     
-    def __init__(self, loc: location, scope: list[int], name: str, type: type) -> None:
+    def __init__(self, loc: location, scope: list[int], name: str, type: typep) -> None:
         super().__init__(loc)
         self.scope = scope
         self.name = name

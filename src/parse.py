@@ -298,7 +298,7 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
             
         temp.args = arglist
         temp.body = datlist
-        temp.dafualts = default
+        temp.defaults = default
         
         return temp
     
@@ -402,8 +402,6 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
                 
             else:
                 error(f"{tok.loc}: type expects '>', got {tok} instead.")
-                
-        print(argin)
                 
         if len(argin) > 0:
             temp.generics = argin
@@ -673,10 +671,10 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
                     temp.args = arglist
                     return temp
                 
-            elif check(op) and tok.value == "[":
+            elif check(group) and tok.value == "[":
                 next()
                 temp = index(tok.loc, temp, makeExpr())
-                if check(op) and tok.value == "]":
+                if check(group) and tok.value == "]":
                     next()
                     return temp
                 else:
@@ -699,18 +697,18 @@ def parse64(ltokens: list[token], verbose: bool) -> token:
     
     if verbose:
         
-        if not os.path.exists(".test"):
-            os.mkdir(".test")
-            print(" -> [PARSER]: created directory '.test'")
+        if not os.path.exists(".out"):
+            os.mkdir(".out")
+            print(" -> [PARSER]: created directory '.out'")
         
-        if not os.path.exists(".test/parse"):
-            os.mkdir(".test/parse")
-            print(" -> [PARSER]: created directory '.test/parse'")
+        if not os.path.exists(".out/parse"):
+            os.mkdir(".out/parse")
+            print(" -> [PARSER]: created directory '.out/parse'")
         
         t = indentTree(str(out))
-        with open(".test/parse/" + out.loc.file.split("/")[-1], "w") as f:
+        with open(".out/parse/" + out.loc.file.split("/")[-1], "w") as f:
             f.write(t)
-        print(" -> [PARSER]: AST written to " + ".test/parse/" + out.loc.file.split("/")[-1])
+        print(" -> [PARSER]: AST written to " + ".out/parse/" + out.loc.file.split("/")[-1])
             
     return out
 
