@@ -2,7 +2,7 @@ import src.lexer as lex
 import src.parse as par
 import src.analysis as anl
 import src.compiler as com
-#import pysrc.generator as gen
+import src.generator as gen
 from src.common import *
 from sys import argv
 from os import system
@@ -35,7 +35,8 @@ def main():
             if not exists(args[0]):
                 error(f"invalid file, -c expects an input file, got \'{args[0]}\' instead.")
             
-            ltokarr: list[lex.ltok] = []
+            ltokarr: list[com.token] = []
+            ast: list[com.token] = []
             
             with open(args[0], "r") as file:
                 curtime = time.time_ns()
@@ -54,7 +55,7 @@ def main():
             print(f"[INFO]: analysis finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             print("[INFO]: starting compiler")    
-            ctokarr: list[com.compiler_token] = com.compile64(ltokarr, cverbose)
+            ctokarr = com.compile64(ast, atokarr, cverbose)
             print(f"[INFO]: compiler finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
             
             if outputfile == 0:
@@ -62,7 +63,7 @@ def main():
             
             curtime = time.time_ns()
             print(f"[INFO]: starting generation")
-            #gen.generate64(ctokarr, outputfile, asmfile)
+            gen.generate64(ctokarr, outputfile, asmfile)
             print(f"[INFO]: generation finished in {(time.time_ns() - curtime) / 1000000000:.8f} seconds")
 
             if run:

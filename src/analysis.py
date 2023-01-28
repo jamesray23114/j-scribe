@@ -15,7 +15,6 @@ def analyze64(ast: token, verbose: bool):
     
     makeID.val = 0
     symb = make_symboltable(ast)
-    print(makeID.val)
           
                 
     # main
@@ -74,10 +73,11 @@ def analyze64(ast: token, verbose: bool):
         print(" -> [ANYLS]: wrote tokens to .out/analysis/" + "symb_" + ast.loc.file.split("/")[-1])
     
     makeID.val = 0
-    verf = verify(ast, symb)
-    print(makeID.val)
+    verify(ast, symb)
     
     
+    return symb
+
 def makeID() -> intl:
     """ makes a unique ID (int) for each variable and function
 

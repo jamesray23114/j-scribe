@@ -262,7 +262,7 @@ class varassign(token):
         out = "varassign: {\n"
         out += f"location: {self.loc}\n"
         out += f"ident: {self.name}\n"
-        out += f"value: {self.oper}\n"
+        out += f"oper: {self.oper}\n"
         out += f"value: {self.value}\n"
         out += "}"
         return out
@@ -417,6 +417,74 @@ class variable(token):
 
 # endregion
    
+# region compiler token types:
+
+class il_resb(token):
+    def __init__(self, loc: location, size: int) -> None:
+        super().__init__(loc)
+        self.size = size
+        
+    def __str__(self) -> str:
+        return f"resb {self.size}"
+
+class il_label(token):
+    def __init__(self, loc: location, name: str) -> None:
+        super().__init__(loc)
+        self.name = name
+    
+    def __str__(self) -> str:
+        return f"{self.name}:"
+
+class il_mov(token):
+    def __init__(self, loc: location, target: token, value: token) -> None:
+        super().__init__(loc)
+        self.target = target
+        self.value = value
+    
+    def __str__(self) -> str:
+        out = f"\tmov {self.target}, {self.value}"
+        return out
+
+class il_call(token):
+    def __init__(self, loc: location, target: token) -> None:
+        super().__init__(loc)
+        self.target = target
+        
+    def __str__(self) -> str:
+        return f"\tcall {self.target}"
+
+class il_push(token):
+    def __init__(self, loc: location, value: token) -> None:
+        super().__init__(loc)
+        self.value = value
+        
+    def __str__(self) -> str:
+        return f"\tpush {self.value}"
+
+class il_pop(token):
+    def __init__(self, loc: location, target: token) -> None:
+        super().__init__(loc)
+        self.target = target
+        
+    def __str__(self) -> str:
+        return f"\tpop {self.target}"
+    
+class il_return(token):
+    def __init__(self, loc: location) -> None:
+        super().__init__(loc)
+        
+    def __str__(self) -> str:
+        return f"\treturn"
+
+class il_exit(token):
+    def __init__(self, loc: location) -> None:
+        super().__init__(loc)
+        
+    def __str__(self) -> str:
+        return f"\texit"
+
+# endregion
+   
 def allign(text: any, width: int) -> str:
     """ returns a string with 'width' spaces after 'text'
 
@@ -480,14 +548,13 @@ def usage():
     """ prints the usage of the program and exits
     """
     
-    print("Usage: scribe [options] file")
+    print("Usage: cscribe [options]")
     print("options:")
-    print("\t -c                    compile file")
+    print("\t -c file               compile file")
     print("\t -r                    run file after compiling")
     print("\t -i                    run and remove file after compiling")
     print("\t -o outfile            output redirection (default=$file)")
-    print("\t -vl,--verbose_lex     verbose lexer output")
-    print("\t -vx,--verbose_com     verbose compiler output")
+    print("\t -v,--verbose          creates a .out directory with verbose output of each different stage")
     print("\t -h,--help             prints this screen")
     print("\t -S outfile            Write asm to file and keep asm")
     exit(0)

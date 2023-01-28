@@ -2,6 +2,8 @@
 
 main = {
 
+if (int: (ptr: file + 25) > 0)
+
     float f = 1.0;
 
     int a1 = (int) f;
@@ -10,3 +12,4 @@ main = {
     int a4 = f ? int;
 
 }
+

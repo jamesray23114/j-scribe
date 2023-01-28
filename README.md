@@ -4,6 +4,9 @@ j-scribe is a wip programming language that compiles to native machine code.
 
 the main goal is to make a language with the same amount of power as C, but with a more robust allaround toolkit.
 
+## example compiler usage as of now
+python bec.py -v -c examples/current.jbe
+
 ## planned 'unique' features
 
 - functions as types
