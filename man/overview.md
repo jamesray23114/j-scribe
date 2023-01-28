@@ -1,5 +1,9 @@
 this guide assumes you have a basic understanding of programming, and as such will not go into detail into what each statement here does.
 
+note that this is a work in progress, and as such this guide may not be up to date with the current state of the language. it may have incorrect information, or it may be missing information.
+
+in many situations, information that is missing will follow the format used by the c programming language, assuming it has been implemented.
+
 # hello world 
 
 ```
@@ -23,11 +27,11 @@ main = {
 
 - variables can be assigned with the syntax: `name = value;`, this can be done all in one line with the syntax: `type name = value;`
 
-- variables can be accessed with the syntax: `name;`
+- variables can be accessed with the syntax: `name;`, for example: `print(name);`
 
 # functions
 
-- functions are declared with the syntax: [parameters] { body }
+- functions are declared with the syntax: `[parameters] { body }`
 - functions are assigned to variables with the syntax: `func<type -> type> name = [parameters] { body };`
 
 - function parameters must match the type of the variable they are assigned to, declaring a function with more parameters then it's type can accept will result in an error.
